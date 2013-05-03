@@ -62,19 +62,10 @@ prepare_fs() {
 	#rm -Rf $delta_dir
 	mkdir -p $delta_dir
 
-    # Mount the ISO
-	#image_dir="$(dirname $LXC_CONFIG_FILE)/image"
-	#mkdir -p $image_dir
-	#mount -n -o loop,ro $isopath $image_dir
-
-    # Extract and mount the squashfs
-    # TODO: Do not redo it every time
+    # Mount the squashfs
 	squashfs_dir="$(dirname $LXC_CONFIG_FILE)/squashfs"
 	mkdir -p $squashfs_dir
-    # XXX TESTING ONLY 
-	#cp $image_dir/casper/filesystem.squashfs $(dirname $LXC_CONFIG_FILE)/squashfs.img
-	#umount $image_dir
-	mount -n -o loop,ro $(dirname $squashfs_path $squashfs_dir
+	mount -n -o loop,ro $squashfs_path $squashfs_dir
 
     # FIXME: Overlayfs leaks loop devices
 	#mount -n -t overlayfs -o upperdir=$delta_dir,lowerdir=$SQUASHFS_DIR overlayfs $LXC_ROOTFS_PATH
@@ -113,8 +104,6 @@ configure_system() {
     #  - Disabled whoopsie and enable autologin
     #
     # $1: username
-
-    # TODO: Check that the user has been correctly created
     username=$1
     if ! user_exists $username; then
         echo "E: User '$username' doesn't exist. Exiting!"
@@ -148,7 +137,7 @@ EOF
 	chroot $rootfs update-locale LANG=en_US.UTF-8
 
     # Creates an upstart job that copies the content of the host /run/udev to
-    # the container's /run/udev
+    # the container /run/udev
 	cat <<EOF > $rootfs/etc/init/lxc-udev.conf
 start on starting udev and started mounted-run
 script
@@ -169,6 +158,8 @@ EOF
 	echo "manual" > $rootfs/etc/init/network-manager.override
 
     # Disable Whoopsie
+    # Apport doesn't work in LXC containers because it does not have access to
+    # /proc
     #if [ -r $rootfs/etc/default/whoopsie ]; then
     #    sed -i "s/report_crashes=true/report_crashes=false/" $rootfs/etc/default/whoopsie
     #fi
@@ -184,8 +175,10 @@ test_setup() {
     # $1: user
     user=$1
 
+    # TODO
+    # Move this to custom_installation directory
     [ -f $BASEDIR/packages.conf ] && cp -a $BASEDIR/packages.conf $rootfs/etc/init/
-    mkdir -p $rootfs/etc/default/tests/
+    #mkdir -p $rootfs/etc/default/tests/
     cat<<EOF > $rootfs/etc/default/tests/ppas
 ppa:ubuntu-unity/daily-build
 EOF
@@ -195,8 +188,8 @@ unity-autopilot
 python-autopilot
 EOF
     # rsync custom-installation directory to rootfs
-    if [ -d "$CUSTOM_INSTALLATION_DIR" ]; then
-        rsync -avH $BASEDIR/custom-installation/ $rootfs/
+    if [ -d "$CUSTOM_INSTALLATION_DIR/target-override" ]; then
+        rsync -avH $CUSTOM_INSTALLATION_DIR/target-override/ $rootfs/
     fi
 
 }
