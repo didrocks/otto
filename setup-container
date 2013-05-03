@@ -1,0 +1,80 @@
+#!/bin/bash -eu
+
+# This script prepares a container that will boot from a desktop ISO
+
+# Copyright (C) 2013 Canonical
+#
+# Authors: Jean-Baptiste Lallement <jean-baptiste.lallement@canonical.com>
+#
+# This program is free software; you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation; version 3.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+#
+
+LXCBASE=/var/lib/lxc
+BASEDIR=$(dirname $0)
+
+usage() {
+    # Prints usage and exit
+    cat<<EOF
+Usage: $(basename $0) NAME
+This script setup an LXC container that will boot from a desktop image.
+
+    NAME: Name of the containers
+EOF
+
+    exit 1
+}
+
+if [ $(id -u) -ne 0 ]; then
+    echo "E: This script must be run as root. Exiting!"
+    exit 1
+fi
+
+create_roottree() {
+    # Create the root tree. Exit if it already exists
+    # 
+    # $1: Container name
+    name=$1
+    guestpath=$LXCBASE/$name
+
+    if [ -e "$guestpath" ]; then
+        echo "Container already exists '$guestpath'. Exiting!"
+        exit 2
+    fi
+
+    mkdir -p $guestpath/rootfs
+}
+
+copy_config() {
+    # Copies configuration files to the LXC guest directory
+    # 
+    # $1: Container name
+    name=$1
+    guestpath=$LXCBASE/$name
+
+    if [ ! -e "$guestpath" ]; then
+        echo "Container doesn't exists '$guestpath'. Exiting!"
+        exit 3
+    fi
+
+    for f in check-installed config defaults.rc fstab packages.conf pre-mount.sh; do
+        cp $BASEDIR/$f $guestpath/
+    done
+
+    sed -i -e "s/\$NAME/$name/" $guestpath/config
+}
+
+[ $# -ne 1 ] && usage
+
+create_roottree $1
+copy_config $1

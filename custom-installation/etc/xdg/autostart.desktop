@@ -1,0 +1,9 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=Fire-up Autopilot tests
+Comment=Starts the Autopilot tests
+Exec=autopilot run unity
+Terminal=false
+Type=Application
+Categories=
+X-GNOME-Autostart-Delay=20

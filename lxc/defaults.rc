@@ -1,0 +1,3 @@
+RELEASE=raring
+SQUASHFS_PATH=$(dirname $LXC_CONFIG_FILE)/squashfs.img
+CUSTOM_INSTALLATION_DIR=$(dirname $LXC_CONFIG_FILE)/custom-installation/

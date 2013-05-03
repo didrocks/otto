@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# This script verifies that only the packages passed in argument will be
+# upgraded or installed
+
+# Copyright (C) 2013 Canonical
+#
+# Authors: Jean-Baptiste Lallement <jean-baptiste.lallement@canonical.com>
+#
+# This program is free software; you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation; version 3.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+#
+
+usage() {
+    # Prints usage and exit
+    cat<<EOF
+Usage: $(basename $0) package [package...]
+
+This script checks that only the packages passed in argument wil be installed
+or upgraded
+
+    package: Binary package name
+EOF
+
+    exit 1
+}
+
+check_install() {
+    # Simulates an installation and return 1 if other packages than those
+    # passed in argument are installed
+    #
+    # $@: list of packages
+    inst=$(apt-get install --simulate $@ 2>/dev/null|grep ^Inst|cut -d' ' -f2|sort)
+    input=$( echo $@|tr ' ' '\n' | sort)
+    pkgs=$(diff -u <(echo "$input" ) <(echo "$inst" )|grep -E '^\+[[:alnum:]]')
+
+    if [ -z "$pkgs" ]; then
+        exit 0
+    else
+        echo "E: The following additional packages will installed:"
+        echo "$pkgs"
+        exit 1
+    fi
+}
+
+[ $# -lt 1 ] && usage
+check_install $@

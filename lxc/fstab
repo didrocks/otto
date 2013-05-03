@@ -1,0 +1,7 @@
+proc            proc         proc    nodev,noexec,nosuid 0 0
+sysfs           sys          sysfs defaults  0 0
+
+/run/udev   var/lxc/udev        none bind,ro
+/dev/dri    dev/dri             none bind,ro
+/dev/snd    dev/snd             none bind,ro
+/dev/input  dev/input           none bind,ro
