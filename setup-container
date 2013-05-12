@@ -68,7 +68,7 @@ copy_config() {
     fi
 
     for f in check-installed config defaults.rc fstab packages.conf pre-mount.sh; do
-        cp $BASEDIR/$f $guestpath/
+        cp $BASEDIR/lxc/$f $guestpath/
     done
 
     sed -i -e "s/\$NAME/$name/" $guestpath/config
