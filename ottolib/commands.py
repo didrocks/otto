@@ -21,7 +21,7 @@ Commands class - part of the project otto
 #
 import argparse
 import logging
-from ottolib import utils, container
+from ottolib import utils, container, const
 
 
 class Commands(object):
@@ -48,8 +48,6 @@ class Commands(object):
 
         pcreate = subparser.add_parser("create", help="Create a new container")
         pcreate.add_argument("name", help="name of the container")
-        pcreate.add_argument("-C", "--config", help="Path to configuration "
-                             "file")
         pcreate.set_defaults(func=self.cmd_create)
 
         pdestroy = subparser.add_parser("destroy", help="Destroy a container")
@@ -58,6 +56,11 @@ class Commands(object):
 
         pstart = subparser.add_parser("start", help="Start a container")
         pstart.add_argument("name", help="name of the container")
+        pstart.add_argument("-f", "--image",
+                            default=None,
+                            help="iso or squashfs to use as rootfs. If an "
+                            "ISO is used, the squashfs contained in this "
+                            "image will be extracted and used as rootfs")
         pstart.set_defaults(func=self.cmd_start)
 
         pstop = subparser.add_parser("stop", help="Stop a container")
@@ -78,7 +81,11 @@ class Commands(object):
         return self.container.destroy()
 
     def cmd_start(self):
-        """ Starts a container """
+        """ Starts a container
+
+        @return: Return code of Container.start() method
+        """
+        # TODO: Any extra check to prevent kicking a user from the system
         srv = "lightdm"
         ret = utils.service_stop(srv)
         if ret > 2:  # Not enough privileges or Unknown error: Abort
@@ -86,8 +93,12 @@ class Commands(object):
                           "Aborting!", srv)
             return ret
         else:
+            # An image has been passed on the cmdline, dump the squashfs to
+            # RUNDIR
+            if self.args.image is not None:
+                if not utils.copy_squashfs(self.args.image, const.CACHEDIR):
+                    return 1
             return self.container.start()
-        return 0
 
     def cmd_stop(self):
         """ Stops a container """

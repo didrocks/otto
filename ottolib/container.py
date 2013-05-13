@@ -106,7 +106,7 @@ class Container(object):
         if it fails to cover the case of a partially created LXC container i.e
         a directory tree without a configuration file
         """
-        logging.info("Removing container '%s'", self.guestpath)
+        logging.info("Removing container '%s'", self.name)
         if not self.container.destroy():
             logging.warning("lxc-destroy failed, trying to remove directory")
             # We check that LXCBASE/NAME/config exists because if it does then

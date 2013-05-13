@@ -31,3 +31,5 @@ if os.path.isdir(os.path.join(BINDIR, "../ottolib/")):
     LXCDEFAULTS = os.path.join(BASEDIR, "lxc.defaults")
 else:
     LXCDEFAULTS = "/usr/share/otto/lxc.defaults"
+
+CACHEDIR="/var/cache/otto"

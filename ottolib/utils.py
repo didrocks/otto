@@ -145,3 +145,46 @@ def service_start_stop(service, start):
             return 1
 
     return 0
+
+
+def get_image_type(path):
+    """ Returns the types of an image passed in argument
+
+    @path: Path to the image
+
+    @return: one of the type in the 'types' dictionary, 'unknown' if the type
+    is not in the dictionary or 'error'
+    """
+    # signature -> type
+    imgtypes = {
+        "# ISO 9660 CD-ROM filesystem": "iso9660",
+        "Squashfs filesystem": "squashfs"
+    }
+    if not os.path.isfile(path):
+        logging.warning("File '%s' does not exist!", path)
+        return "error"
+
+    (ret, msg) = subprocess.getstatusoutput("file -b %s" % path)
+    if ret != 0:
+        return "error"
+    else:
+        for sig, imgtype in imgtypes.iteritems():
+            if msg.lower.startswith(sig.lower()):
+                return imgtype
+        return "unknown"
+
+
+def copy_squashfs(image, destdir):
+    """ Copy a squashfs to destdir
+
+    If the image passed in argument is an ISO, the squashfs is extracted to
+    destdir. The version of the image is extracted from the squashfs to
+    clearly identify it (release, arch) The buildid is also extracted if the
+    file media-info is found on the image.
+
+    @image: path to an image
+    @destdir: destination path
+
+    @return: (distro, release, arch, buildid)
+    """
+    pass
