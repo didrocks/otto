@@ -3,18 +3,18 @@ lxc.network.hwaddr = 00:16:3e:77:13:86
 lxc.network.link = lxcbr0
 lxc.network.flags = up
 
-lxc.rootfs = /var/lib/lxc/$NAME/rootfs
-lxc.mount = /var/lib/lxc/$NAME/fstab
+lxc.rootfs = /var/lib/lxc/${NAME}/rootfs
+lxc.mount = /var/lib/lxc/${NAME}/fstab
 lxc.pivotdir = lxc_putold
 
-lxc.hook.pre-mount = /var/lib/lxc/$NAME/pre-mount.sh
+lxc.hook.pre-mount = /var/lib/lxc/${NAME}/scripts/pre-mount.sh
 lxc.hook.mount = /usr/share/lxc/hooks/mountcgroups
 
 lxc.devttydir = lxc
 lxc.tty = 4
 lxc.pts = 1024
 
-lxc.utsname = $NAME
+lxc.utsname = ${NAME}
 lxc.arch = amd64
 lxc.cap.drop = sys_module mac_admin mac_override
 

@@ -1,5 +1,5 @@
 """
-Class to manage LXC - part of the project otto
+Various Constants - part of the project otto
 """
 
 # Copyright (C) 2013 Canonical
@@ -19,10 +19,15 @@ Class to manage LXC - part of the project otto
 # this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 #
-import logging
+import sys
+import os
 
-class LXC(object):
-    """Class that manages LXC"""
-    def __init__(self):
-        """Constructor"""
-        pass
+LXCBASE = "/var/lib/lxc"
+BINDIR = os.path.abspath(sys.path[0])
+
+if os.path.isdir(os.path.join(BINDIR, "../ottolib/")):
+    BASEDIR = os.path.normpath(os.path.join(BINDIR, ".."))
+    # Run from source tree
+    LXCDEFAULTS = os.path.join(BASEDIR, "lxc.defaults")
+else:
+    LXCDEFAULTS = "/usr/share/otto/lxc.defaults"

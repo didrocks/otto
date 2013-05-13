@@ -20,6 +20,8 @@ Utilities - part of the project otto
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 #
 import logging
+import os
+import stat
 
 def set_logging(debugmode=False):
     """Initialize logging"""
@@ -27,3 +29,8 @@ def set_logging(debugmode=False):
         level=logging.DEBUG if debugmode else logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s")
     logging.debug('Debug mode enabled')
+
+def set_executable(path):
+    """ Set executable bit on a file """
+    st = os.stat(path)
+    os.chmod(path, st.st_mode | stat.S_IEXEC)

@@ -21,13 +21,14 @@ Commands class - part of the project otto
 #
 import argparse
 import logging
-from ottolib import utils, lxc as ottolxc
+from ottolib import utils, container, const
 
 class Commands(object):
     def __init__(self):
         """ Constructor """
         self.args = None
         self.run = None
+        self.container = None
         self.__parse_args()
 
     def __parse_args(self):
@@ -59,18 +60,17 @@ class Commands(object):
         self.args = parser.parse_args()
         utils.set_logging(self.args.debug)
         self.run = self.args.func
+        self.container = container.Container(self.args.name)
         logging.debug(self.args)
 
     def cmd_create(self):
         """ Creates a new container """
-        logging.info("Creating container '%s'", self.args.name)
-        logging.info("Container '%s' created", self.args.name)
+        self.container.create()
         return 0
 
     def cmd_destroy(self):
         """ Destroys a container """
-        logging.info("Destroying container '%s'", self.args.name)
-        logging.info("Container '%s' destroyed", self.args.name)
+        self.container.destroy()
         return 0
 
     def cmd_start(self):
