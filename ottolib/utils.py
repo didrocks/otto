@@ -23,6 +23,7 @@ import logging
 import os
 import stat
 
+
 def set_logging(debugmode=False):
     """Initialize logging"""
     logging.basicConfig(
@@ -30,7 +31,8 @@ def set_logging(debugmode=False):
         format="%(asctime)s %(levelname)s %(message)s")
     logging.debug('Debug mode enabled')
 
+
 def set_executable(path):
     """ Set executable bit on a file """
-    st = os.stat(path)
-    os.chmod(path, st.st_mode | stat.S_IEXEC)
+    stt = os.stat(path)
+    os.chmod(path, stt.st_mode | stat.S_IEXEC)

@@ -21,9 +21,15 @@ Commands class - part of the project otto
 #
 import argparse
 import logging
-from ottolib import utils, container, const
+from ottolib import utils, container
+
 
 class Commands(object):
+    """ Available commands for otto
+
+    This class parses the command line, does some basic checks and sets the
+    method for the command passed on the command line
+    """
     def __init__(self):
         """ Constructor """
         self.args = None
@@ -42,7 +48,8 @@ class Commands(object):
 
         pcreate = subparser.add_parser("create", help="Create a new container")
         pcreate.add_argument("name", help="name of the container")
-        pcreate.add_argument("-C", "--config", help="Path to configuration file")
+        pcreate.add_argument("-C", "--config", help="Path to configuration "
+                             "file")
         pcreate.set_defaults(func=self.cmd_create)
 
         pdestroy = subparser.add_parser("destroy", help="Destroy a container")
@@ -61,7 +68,6 @@ class Commands(object):
         utils.set_logging(self.args.debug)
         self.run = self.args.func
         self.container = container.Container(self.args.name)
-        logging.debug(self.args)
 
     def cmd_create(self):
         """ Creates a new container """
@@ -75,8 +81,7 @@ class Commands(object):
 
     def cmd_start(self):
         """ Starts a container """
-        logging.info("Starting container '%s'", self.args.name)
-        logging.info("Container '%s' started", self.args.name)
+        self.container.start()
         return 0
 
     def cmd_stop(self):

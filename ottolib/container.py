@@ -26,7 +26,6 @@ import shutil
 import lxc
 from ottolib import const, utils
 
-LXCBASE="/var/lib/lxc"
 
 class Container(object):
     """Class that manages LXC"""
@@ -34,7 +33,7 @@ class Container(object):
         """Constructor"""
         self.name = name
         self.container = lxc.Container(name)
-        self.guestpath = os.path.join(LXCBASE, name)
+        self.guestpath = os.path.join(const.LXCBASE, name)
 
     def create(self):
         """ Creates a new container
@@ -43,19 +42,21 @@ class Container(object):
         the create method from LXC API because the bootstrapping phase is not
         required and replaced by using an Ubuntu image directly.
         It creates the minimum files required by LXC to be a valid container:
-        rootfs/, config and fstab, copies a pre-mount script that is used during
-        when the container starts to prepare the container to run from a disk
-        image and share the devices from the host. The script check-installed
-        and the upstart job packages.conf will be copied to the guest FS by the
-        pre-mount script to install additional packages into the container.
+        rootfs/, config and fstab, copies a pre-mount script that is used
+        during when the container starts to prepare the container to run from
+        a disk image and share the devices from the host. The script
+        check-installed and the upstart job packages.conf will be copied to the
+        guest FS by the pre-mount script to install additional packages into
+        the container.
 
         @return: True on success, False otherwise
 
         TODO:
             - Verify that the source files exist before the copy
-            - Use a custom configuration file
-            - Append lines to fstab
-            - Specify a release
+            - Override LXC configuration file or append new directives
+            - Override default fstab or append new entries
+            - Specify a release (Could this information be extracted from
+            squashfs?)
         """
         logging.info("Creating container '%s'", self.name)
 
@@ -68,8 +69,8 @@ class Container(object):
         os.makedirs(os.path.join(self.guestpath, "rootfs"))
         # Scripts
         os.makedirs(os.path.join(self.guestpath, "scripts"))
-        # tmp directory for files that will be copied to rootfs by the pre-mount
-        # script
+        # tmp directory for files that will be copied to rootfs by the
+        # pre-mount script
         os.makedirs(os.path.join(self.guestpath, "guest"))
 
         # Copy files used by the container
@@ -100,8 +101,8 @@ class Container(object):
         """ Destroys a container
 
         The container is destroyed with the LXC API and we fallback to rmtree()
-        if it fails to cover the case of a partially created LXC container i.e a
-        directory tree without a configuration file
+        if it fails to cover the case of a partially created LXC container i.e
+        a directory tree without a configuration file
         """
         logging.info("Removing container '%s'", self.guestpath)
         if not self.container.destroy():
@@ -109,12 +110,18 @@ class Container(object):
             # We check that LXCBASE/NAME/config exists because if it does then
             # lxc destroy should have succeeded and the failure is elsewhere,
             # for example the container is still running
-            if os.path.isdir(self.guestpath) and self.guestpath.startswith(LXCBASE) \
-                    and not os.path.exists(os.path.join(self.guestpath, "config")):
+            if os.path.isdir(self.guestpath) \
+                    and self.guestpath.startswith(const.LXCBASE) \
+                    and not os.path.exists(
+                        os.path.join(self.guestpath, "config")):
                 shutil.rmtree(self.guestpath)
             else:
-                logging.info("Path doesn't exist '%s'. Ignoring.", self.guestpath)
+                logging.info("Path doesn't exist '%s'. Ignoring.",
+                             self.guestpath)
                 return False
         logging.debug("Done")
 
-
+    def start(self):
+        """ Starts a container
+        """
+        pass

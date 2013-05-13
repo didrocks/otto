@@ -45,20 +45,14 @@ class Otto(object):
             sys.exit(1)
 
     def main(self):
-        # Main routine
+        """ Main routine
+        """
         logging.debug('Main')
         if self.cmds.run is not None:
             return self.cmds.run()
         else:
             return 1
 
-
-def set_logging(debugmode=False):
-    """Initialize logging"""
-    logging.basicConfig(
-        level=logging.DEBUG if debugmode else logging.INFO,
-        format="%(asctime)s %(levelname)s %(message)s")
-    logging.debug('Debug mode enabled')
 
 if __name__ == "__main__":
     OTTO = Otto()
