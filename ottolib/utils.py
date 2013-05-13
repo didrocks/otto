@@ -23,6 +23,9 @@ import logging
 import os
 import stat
 import subprocess
+from tempfile import TemporaryDirectory
+import shutil
+import hashlib
 
 
 def set_logging(debugmode=False):
@@ -190,15 +193,91 @@ def copy_image(image, destdir):
 
     image_type = get_image_type(image)
 
+    squashfs_path = None
     distro = None
     release = None
     arch = None
     buildid = None
 
-    if image_type == "iso9660":
-        # Extract squashfs
-        pass
-    elif image_type == "squashfs":
-        pass
+    with TemporaryDirectory(prefix="otto.") as tmpdir:
+        if image_type == "iso9660":
+            # Extract md5sum.txt from ISO
+            md5sum_path = extract_file_from_iso("md5sum.txt", image, tmpdir)
+            md5sums = {}
+            with open(md5sum_path) as fmd5:
+                for line in fmd5:
+                    (digest, file) = line.strip().split(maxsplit=1)
+                    md5sums[file] = digest
+
+            # Calculate md5sum of the current squashfs if it exists
+            squashfs_name = "filesystem.squashfs"
+            # Path of the squashfs on the FS
+            sqfs_fs = os.path.join(destdir, squashfs_name),
+            # Path of the squashfs on the iso
+            sqfs_iso = os.path.join("casper", squashfs_name)
+            squashfs_md5 = compute_md5sum(sqfs_fs)
+            if not squashfs_md5 == md5sums[sqfs_iso]:
+                # Extract casper/filesystem.squashfs if they do not match
+                squashfs_path = extract_file_from_iso(sqfs_iso, image, tmpdir)
+            else:
+                squashfs_path = sqfs_fs
+
+        if image_type == "squashfs" or squashfs_path is not None:
+            # Copy squashfs to cache directory
+            sqfs_fs = squashfs_path if squashfs_path is not None else image
+            # Extract metadata from the squashfs
+            lsb_release = extract_file_from_squashfs("etc/lsb-release",
+                                                     sqfs_fs, tmpdir)
+            # Copy it to destination directory
+            # Recreate symlink to this file
 
     return (distro, release, arch, buildid)
+
+
+def extract_file_from_iso(file, iso, dest):
+    """ Extract a file from an ISO
+    """
+    if not shutil.which("bsdtar"):
+        logging.error("bsdtar not found in path. It is needed to extract iso "
+                      "files")
+    cmd = ["bsdtar", "xf", iso, "-C", dest, file]
+    try:
+        logging.debug("Extracting %s from %s to %s", file, iso, dest)
+        subprocess.check_call(cmd)
+        out = os.path.join(dest, file)
+        return out
+    except subprocess.CalledProcessError:
+        return None
+
+
+def extract_file_from_squashfs(file, sqfs, dest):
+    """ Extract a file from an ISO
+    """
+    if not shutil.which("unsquashfs"):
+        logging.error("unsquashfs not found in path. It is needed to extract "
+                      "squashfs files")
+    cmd = ["unsquashfs",  "-f", "-d", dest, sqfs, file]
+    try:
+        logging.debug("Extracting %s from %s to %s", file, sqfs, dest)
+        subprocess.check_call(cmd)
+        out = os.path.join(dest, file)
+        return out
+    except subprocess.CalledProcessError:
+        return None
+
+
+def compute_md5sum(file):
+    """ Validate an MD5 checksum """
+    block_size = 2**20
+    logging.debug("Calculating hash for file '%s'", file)
+    md5sum = hashlib.md5()
+    with open(file) as f:
+        while True:
+            data = f.read(block_size)
+            if not data:
+                break
+            md5sum.update(data)
+
+    logging.debug("Local File Checksum: '%s'", md5sum)
+    return md5sum.hexdigest()
+
