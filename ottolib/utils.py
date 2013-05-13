@@ -64,7 +64,7 @@ def service_is_running(service):
 
     @return: True if service if running False if not and -1 on error
     """
-    if not service_exists(service):
+    if service_exists(service) != 0:
         return -1
 
     cmd = "status %s" % service
