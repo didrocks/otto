@@ -96,7 +96,7 @@ class Commands(object):
             # An image has been passed on the cmdline, dump the squashfs to
             # RUNDIR
             if self.args.image is not None:
-                if not utils.copy_squashfs(self.args.image, const.CACHEDIR):
+                if not utils.copy_image(self.args.image, const.CACHEDIR):
                     return 1
             return self.container.start()
 

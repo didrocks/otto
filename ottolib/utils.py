@@ -174,7 +174,7 @@ def get_image_type(path):
         return "unknown"
 
 
-def copy_squashfs(image, destdir):
+def copy_image(image, destdir):
     """ Copy a squashfs to destdir
 
     If the image passed in argument is an ISO, the squashfs is extracted to
@@ -187,4 +187,18 @@ def copy_squashfs(image, destdir):
 
     @return: (distro, release, arch, buildid)
     """
-    pass
+
+    image_type = get_image_type(image)
+
+    distro = None
+    release = None
+    arch = None
+    buildid = None
+
+    if image_type == "iso9660":
+        # Extract squashfs
+        pass
+    elif image_type == "squashfs":
+        pass
+
+    return (distro, release, arch, buildid)
