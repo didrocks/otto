@@ -49,14 +49,16 @@ class Container(object):
         guest FS by the pre-mount script to install additional packages into
         the container.
 
-        @return: True on success, False otherwise
+        @return: 0 on success, 1 otherwise
 
         TODO:
             - Verify that the source files exist before the copy
             - Override LXC configuration file or append new directives
             - Override default fstab or append new entries
             - Specify a release (Could this information be extracted from
-            squashfs?)
+              squashfs?)
+            - Normalize return codes as currently the same RC can mean different
+              things
         """
         logging.info("Creating container '%s'", self.name)
 
@@ -95,7 +97,7 @@ class Container(object):
         utils.set_executable(os.path.join(dst, "check-installed"))
 
         logging.debug("Done")
-        return True
+        return 0
 
     def destroy(self):
         """ Destroys a container
@@ -118,10 +120,16 @@ class Container(object):
             else:
                 logging.info("Path doesn't exist '%s'. Ignoring.",
                              self.guestpath)
-                return False
+                return 1
         logging.debug("Done")
+        return 0
 
     def start(self):
         """ Starts a container
         """
-        pass
+        return 0
+
+    def stop(self):
+        """ Stops a container
+        """
+        return 0

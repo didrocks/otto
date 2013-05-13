@@ -71,21 +71,26 @@ class Commands(object):
 
     def cmd_create(self):
         """ Creates a new container """
-        self.container.create()
-        return 0
+        return self.container.create()
 
     def cmd_destroy(self):
         """ Destroys a container """
-        self.container.destroy()
-        return 0
+        return self.container.destroy()
 
     def cmd_start(self):
         """ Starts a container """
-        self.container.start()
+        srv = "lightdm"
+        ret = utils.service_stop(srv)
+        if ret > 2:  # Not enough privileges or Unknown error: Abort
+            logging.error("An error occurred while stopping service '%s'. "
+                          "Aborting!", srv)
+            return ret
+        else:
+            return self.container.start()
         return 0
 
     def cmd_stop(self):
         """ Stops a container """
         logging.info("Stopping container '%s'", self.args.name)
         logging.info("Container '%s' stopped", self.args.name)
-        return 0
+        return self.container.start()

@@ -22,6 +22,7 @@ Utilities - part of the project otto
 import logging
 import os
 import stat
+import subprocess
 
 
 def set_logging(debugmode=False):
@@ -36,3 +37,111 @@ def set_executable(path):
     """ Set executable bit on a file """
     stt = os.stat(path)
     os.chmod(path, stt.st_mode | stat.S_IEXEC)
+
+
+def service_start(service):
+    """ Start an upstart service
+
+    @service: Name of the service
+
+    @return: True if command is successful
+    """
+    return service_start_stop(service, "start")
+
+
+def service_stop(service):
+    """ Start an upstart service
+
+    @service: Name of the service
+
+    @return: True if command is successful
+    """
+    return service_start_stop(service, "stop")
+
+
+def service_is_running(service):
+    """ Status of an upstart service
+
+    @return: True if service if running False if not and -1 on error
+    """
+    if not service_exists(service):
+        return -1
+
+    cmd = "status %s" % service
+    (ret, msg) = subprocess.getstatusoutput(cmd)
+
+    if ret != 0:
+        return -1
+
+    if "start/running" in msg:
+        logging.debug("Service '%s' is running", service)
+        return True
+    elif "stop/waiting" in msg:
+        logging.debug("Service '%s' is stopped", service)
+        return False
+
+    # Happens if the service doesn't exist on the system
+    logging.error("'status %s' failed with exit status %d:\n%s", service, ret,
+                  msg)
+    return -1
+
+
+def service_exists(service):
+    """ Checks that a service exists on the system
+
+    @service: Name of the service
+
+    @return: 0 if it exists, 1 if not and -1 on error
+    """
+    cmd = "status %s" % service
+
+    (ret, msg) = subprocess.getstatusoutput(cmd)
+
+    if ret == 0:
+        return 0
+
+    if ret == 256 and "status: Unknown job:" in msg:
+        return 1
+
+    return -1
+
+
+def service_start_stop(service, start):
+    """ Start/Stop an upstart service
+
+    @service: Name of the service
+    @start: start or stop
+
+    @return: 0   on success,
+             1   on failure,
+             2   if service doesn't exist,
+             3   not enough privileges
+             99  on any other error
+    """
+    if os.getuid() != 0:
+        logging.error("You must be root to manage upstart services. Aborting!")
+        return 3
+
+    exists = service_exists(service)
+    if exists < 0:
+        return -1
+    if exists == 1:
+        return 2
+
+    # Return immediatly if the service is already in the required state
+    status = service_is_running(service)
+    if status < 0:  # 'status service' returned an error
+        return 99
+
+    if status == (start == "start"):
+        logging.info("Service '%s' already in state '%s'", service, start)
+    else:
+        cmd = "%s %s" % (start.lower(), service.lower())
+        logging.debug("Executing: %s", cmd)
+        (ret, msg) = subprocess.getstatusoutput(cmd)
+
+        if ret != 0:
+            logging.error("'%s' failed with status %d:\n%s", cmd, ret, msg)
+            return 1
+
+    return 0
