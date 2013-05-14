@@ -109,4 +109,4 @@ class Commands(object):
         """ Stops a container """
         logging.info("Stopping container '%s'", self.args.name)
         logging.info("Container '%s' stopped", self.args.name)
-        return self.container.start()
+        return self.container.stop()

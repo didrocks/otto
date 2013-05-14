@@ -128,9 +128,12 @@ class Container(object):
     def start(self):
         """ Starts a container
         """
-        return 0
+        logging.info("Starting container '%s'", self.name)
+        ret = self.container.start()
+        return 0 if ret else 1
 
     def stop(self):
         """ Stops a container
         """
-        return 0
+        ret = self.container.stop()
+        return 0 if ret else 1
