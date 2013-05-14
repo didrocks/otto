@@ -201,13 +201,22 @@ def copy_image(image, destdir):
 
     with TemporaryDirectory(prefix="otto.") as tmpdir:
         if image_type == "iso9660":
-            # Extract md5sum.txt from ISO
+            # Extract md5sum.txt from ISO and loads checksums
             md5sum_path = extract_file_from_iso("md5sum.txt", image, tmpdir)
             md5sums = {}
             with open(md5sum_path) as fmd5:
                 for line in fmd5:
                     (digest, file) = line.strip().split(maxsplit=1)
                     md5sums[file] = digest
+
+            # Extract manifest. It is used to get the timestamp of
+            # filesystem.squashfs without extracting the big squashfs. It
+            # could be any file generated at the same time
+            manifest = extract_file_from_iso("casper/filesystem.manifest", image, tmpdir)
+
+
+            # Get distro and arch
+            media_info = extract_file_from_iso(".disk/info", image, tmpdir)
 
             # Calculate md5sum of the current squashfs if it exists
             squashfs_name = "filesystem.squashfs"

@@ -69,8 +69,11 @@ class Commands(object):
 
         self.args = parser.parse_args()
         utils.set_logging(self.args.debug)
-        self.run = self.args.func
-        self.container = container.Container(self.args.name)
+        if hasattr(self.args, "func"):
+            self.run = self.args.func
+            self.container = container.Container(self.args.name)
+        else:
+            parser.print_help()
 
     def cmd_create(self):
         """ Creates a new container """
@@ -94,7 +97,7 @@ class Commands(object):
             return ret
         else:
             # An image has been passed on the cmdline, dump the squashfs to
-            # RUNDIR
+            # cache directory
             if self.args.image is not None:
                 if not utils.copy_image(self.args.image, const.CACHEDIR):
                     return 1
