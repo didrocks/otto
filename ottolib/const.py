@@ -33,3 +33,6 @@ else:
     LXCDEFAULTS = "/usr/share/otto/lxc.defaults"
 
 CACHEDIR="/var/cache/otto"
+
+START_TIMEOUT = 60
+STOP_TIMEOUT = 30

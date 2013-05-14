@@ -126,14 +126,46 @@ class Container(object):
         return 0
 
     def start(self):
-        """ Starts a container
+        """ Starts a container.
+
+        This method starts a container and wait for START_TIMEOUT before
+        aborting.
+
+        @return: 0 on success 1 on failure
         """
+        if self.container.running:
+            logging.warning("Container '%s' already running. Skipping!")
+            return 0
+
         logging.info("Starting container '%s'", self.name)
-        ret = self.container.start()
-        return 0 if ret else 1
+        if not self.container.start():
+            return 1
+
+        # Wait for the container to start
+        self.container.wait('RUNNING', const.START_TIMEOUT)
+        logging.info("Container '%s' started", self.name)
+        return 0 if self.container.running else 1
 
     def stop(self):
         """ Stops a container
+
+        This method stops a container and wait for STOP_TIMEOUT before
+        aborting.
+
+        @return: 0 on success 1 on failure
+        TODO:
+            - Do not stop if already stopped
         """
-        ret = self.container.stop()
-        return 0 if ret else 1
+        if not self.container.running:
+            logging.warning("Container '%s' already stopped. Skipping!")
+            return 0
+
+        logging.info("Stopping container '%s'", self.name)
+        if not self.container.stop():
+            return 1
+
+        # Wait for the container to stop
+        self.container.wait('STOPPED', const.STOP_TIMEOUT)
+        logging.info("Container '%s' stopped", self.name)
+        return 0 if not self.container.running else 1
+

@@ -103,10 +103,15 @@ class Commands(object):
                     self.args.image, const.CACHEDIR)
                 if self.container.squashfs_path is None:
                     return 1
+        # TODO:
+        #   - Wait for start
+        #   - Poll logs until stopped
             return self.container.start()
 
     def cmd_stop(self):
         """ Stops a container """
         logging.info("Stopping container '%s'", self.args.name)
         logging.info("Container '%s' stopped", self.args.name)
+        # TODO:
+        #   - Wait for stop
         return self.container.stop()
