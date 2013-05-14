@@ -34,6 +34,7 @@ class Container(object):
         self.name = name
         self.container = lxc.Container(name)
         self.guestpath = os.path.join(const.LXCBASE, name)
+        self.squashfs = None
 
     def create(self):
         """ Creates a new container
