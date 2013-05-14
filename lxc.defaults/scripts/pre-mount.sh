@@ -27,17 +27,18 @@
 # - Add an option to restore from an existing delta
 
 BASEDIR=$(dirname $LXC_CONFIG_FILE)
+CACHEDIR=/var/cache/otto
 rootfs=$LXC_ROOTFS_PATH
 RELEASE=$(distro-info --devel)
 ARCH=$(dpkg --print-architecture)
 TESTUSER=ubuntu
 
 CUSTOM_INSTALLATION_DIR=""
-SQUASHFS_PATH="$(dirname $LXC_CONFIG_FILE)/squashfs.img"
+SQUASHFS_PATH="${CACHEDIR}/filesystem.squashfs"
 
 # TODO: Pass config file in argument
-DEFAULTRC=$BASEDIR/defaults.rc
-[ -r "$DEFAULTRC" ] && . $DEFAULTRC
+OTTORC=$BASEDIR/scripts/otto.rc
+[ -r "$OTTORC" ] && . $OTTORC
 
 prepare_fs() {
     # This function prepares the container with the directories required to
@@ -46,7 +47,7 @@ prepare_fs() {
     # 
     # $1: Path to squashfs file
     #
-    squashfs_path=$1
+    squashfs_path=$(readlink -f $1)
 
     if [ ! -r "$squashfs_path" ]; then
         echo "E: File doesn't exist '$squashfs_path'. Exiting!"
@@ -58,7 +59,7 @@ prepare_fs() {
     # delta_dir is the overlay and will contain all the files that have been
     # changed in the container
 	delta_dir="$(dirname $LXC_CONFIG_FILE)/delta"
-    # TODO: Make it an option
+    # TODO: Make it an option of the start command of otto
 	#rm -Rf $delta_dir
 	mkdir -p $delta_dir
 
