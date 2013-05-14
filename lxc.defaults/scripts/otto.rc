@@ -1,3 +1,2 @@
-RELEASE=${RELEASE}
-SQUASHFS_PATH=/var/cache/otto/squashfs.img
+SQUASHFS_PATH=/var/cache/otto/$(readlink -f filesystem.squashfs)
 CUSTOM_INSTALLATION_DIR=$(dirname $LXC_CONFIG_FILE)/custom-installation/

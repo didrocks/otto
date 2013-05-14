@@ -26,6 +26,8 @@ import subprocess
 from tempfile import TemporaryDirectory
 import shutil
 import hashlib
+from time import gmtime, strftime
+from glob import glob
 
 
 def set_logging(debugmode=False):
@@ -171,8 +173,9 @@ def get_image_type(path):
     if ret != 0:
         return "error"
     else:
-        for sig, imgtype in imgtypes.iteritems():
-            if msg.lower.startswith(sig.lower()):
+        for sig, imgtype in imgtypes.items():
+            if msg.lower().startswith(sig.lower()):
+                logging.debug("Found type '%s' for file '%s'", imgtype, path)
                 return imgtype
         return "unknown"
 
@@ -188,16 +191,16 @@ def copy_image(image, destdir):
     @image: path to an image
     @destdir: destination path
 
-    @return: (distro, release, arch, buildid)
+    @return: (distro, release, arch, md5sum)
     """
-
+    logging.info("Updating cached squashfs from '%s'", image)
     image_type = get_image_type(image)
 
     squashfs_path = None
     distro = None
     release = None
     arch = None
-    buildid = None
+    md5sum = None
 
     with TemporaryDirectory(prefix="otto.") as tmpdir:
         if image_type == "iso9660":
@@ -212,35 +215,75 @@ def copy_image(image, destdir):
             # Extract manifest. It is used to get the timestamp of
             # filesystem.squashfs without extracting the big squashfs. It
             # could be any file generated at the same time
-            manifest = extract_file_from_iso("casper/filesystem.manifest", image, tmpdir)
+            manifest = extract_file_from_iso("casper/filesystem.manifest",
+                                             image, tmpdir)
+            manifest_ts = strftime("%Y%m%d_%H", gmtime(os.path.getmtime(
+                os.path.join(tmpdir, "casper/filesystem.manifest"))))
 
-
-            # Get distro and arch
-            media_info = extract_file_from_iso(".disk/info", image, tmpdir)
-
-            # Calculate md5sum of the current squashfs if it exists
-            squashfs_name = "filesystem.squashfs"
-            # Path of the squashfs on the FS
-            sqfs_fs = os.path.join(destdir, squashfs_name),
-            # Path of the squashfs on the iso
-            sqfs_iso = os.path.join("casper", squashfs_name)
-            squashfs_md5 = compute_md5sum(sqfs_fs)
-            if not squashfs_md5 == md5sums[sqfs_iso]:
-                # Extract casper/filesystem.squashfs if they do not match
-                squashfs_path = extract_file_from_iso(sqfs_iso, image, tmpdir)
+            # The squashfs is extracted from the ISO only if it doesn't
+            # already exists in the cache directory. We ensure that it is
+            # unique by naming the cached file with the md5sum of the
+            # squashfs. Since the ISO is read-only, it is always
+            # the same for a given build.
+            md5sum = md5sums["./casper/filesystem.squashfs"]
+            cached_files = glob(os.path.join( destdir, "*-%s.squashfs" %
+                                             md5sum))
+            if len(cached_files) == 0:
+                squashfs_path = extract_file_from_iso(
+                    "casper/filesystem.squashfs", image, tmpdir)
+                squashfs_md5 = compute_md5sum(squashfs_path)
+                if squashfs_md5 != md5sum:
+                    logging.error("Checksum of '%s' validation failed. "
+                                  "Expected '%s', got '%s'. Aborting!")
+                    return (None, None, None, None)
             else:
-                squashfs_path = sqfs_fs
+                squashfs_path = cached_files[0]
 
+        # Process a squashfs file.
+        # squashfs_path has been set after the extraction from the ISO if an
+        # ISO was passed as argument or it is the image name if the type of
+        # the image is 'squashfs'
         if image_type == "squashfs" or squashfs_path is not None:
             # Copy squashfs to cache directory
-            sqfs_fs = squashfs_path if squashfs_path is not None else image
-            # Extract metadata from the squashfs
-            lsb_release = extract_file_from_squashfs("etc/lsb-release",
-                                                     sqfs_fs, tmpdir)
-            # Copy it to destination directory
-            # Recreate symlink to this file
+            if squashfs_path is None:
+                squashfs_path = image
+            if md5sum is None:
+                md5sum = compute_md5sum(squashfs_path)
 
-    return (distro, release, arch, buildid)
+            cached_files = glob(os.path.join( destdir, "*-%s.squashfs" % md5sum))
+            if len(cached_files) > 0:  # Should be 1 really
+                logging.debug("File '%s' already in cache", cached_files[0])
+                destfile = cached_files[0]
+            else:
+                # Extract metadata from the squashfs
+                lsb_release = extract_file_from_squashfs("etc/lsb-release",
+                                                         squashfs_path, tmpdir)
+                sqfs_root = extract_file_from_squashfs(
+                    "squashfs-root", squashfs_path,
+                    os.path.join(tmpdir, "squashfs-root"))
+                # squashfs-root is the root directory and unsquashfs is called
+                # with -d which will extract it to dest without squashfs-root
+                # leading to a name like $tmpdir/squashfs-root/squashfs-root but
+                # only $tmpdir/squashfs-root/ exists, so the last part must be
+                # stripped as it doesn't exists
+                sqfs_root = sqfs_root.rsplit('/', 1)[0]
+                sqfs_root_ts = strftime("%Y%m%d_%H",
+                                        gmtime(os.path.getmtime(sqfs_root)))
+
+                # Copy it to destination directory
+                destfile = "filesystem-%s-%s.squashfs" % (sqfs_root_ts, md5sum)
+                if not os.path.exists(destdir):
+                    os.makedirs(destdir)
+                shutil.copy2(squashfs_path, os.path.join(destdir, destfile))
+
+            # Recreate symlink to this file
+            destlink = os.path.join(destdir, "filesystem.squashfs")
+            logging.debug("Updating symlink '%s'", destlink)
+            if os.path.islink(destlink):
+                os.unlink(destlink)
+            os.symlink(destfile, destlink)
+
+    return (distro, release, arch, md5sum)
 
 
 def extract_file_from_iso(file, iso, dest):
@@ -265,7 +308,7 @@ def extract_file_from_squashfs(file, sqfs, dest):
     if not shutil.which("unsquashfs"):
         logging.error("unsquashfs not found in path. It is needed to extract "
                       "squashfs files")
-    cmd = ["unsquashfs",  "-f", "-d", dest, sqfs, file]
+    cmd = ["unsquashfs",  "-f", "-n", "-d", dest, sqfs, file]
     try:
         logging.debug("Extracting %s from %s to %s", file, sqfs, dest)
         subprocess.check_call(cmd)
@@ -280,13 +323,12 @@ def compute_md5sum(file):
     block_size = 2**20
     logging.debug("Calculating hash for file '%s'", file)
     md5sum = hashlib.md5()
-    with open(file) as f:
+    with open(file, "rb") as f:
         while True:
             data = f.read(block_size)
             if not data:
                 break
             md5sum.update(data)
 
-    logging.debug("Local File Checksum: '%s'", md5sum)
+    logging.debug("Local File Checksum: '%s'", md5sum.hexdigest())
     return md5sum.hexdigest()
-

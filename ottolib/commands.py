@@ -99,7 +99,9 @@ class Commands(object):
             # An image has been passed on the cmdline, dump the squashfs to
             # cache directory
             if self.args.image is not None:
-                if not utils.copy_image(self.args.image, const.CACHEDIR):
+                (distro, release, arch, md5sum) = utils.copy_image(
+                    self.args.image, const.CACHEDIR)
+                if md5sum is None:
                     return 1
             return self.container.start()
 
