@@ -76,8 +76,8 @@ class Container(object):
             - Override default fstab or append new entries
             - Specify a release (Could this information be extracted from
               squashfs?)
-            - Normalize return codes as currently the same RC can mean different
-              things
+            - Normalize return codes as currently the same RC can mean
+              different things
         """
         logger.info("Creating container '%s'", self.name)
 
@@ -100,9 +100,11 @@ class Container(object):
 
         shutil.copy(os.path.join(self.lxcdefaults, "fstab"), self.guestpath)
 
-        shutil.copy(os.path.join(self.script_src, "pre-mount.sh"), self.script_dst)
+        shutil.copy(os.path.join(self.script_src, "pre-mount.sh"),
+                    self.script_dst)
         utils.set_executable(os.path.join(self.script_dst, "pre-mount.sh"))
-        shutil.copy(os.path.join(self.script_src, const.DEFAULT_CONFIG_FILE), self.script_dst)
+        shutil.copy(os.path.join(self.script_src, const.DEFAULT_CONFIG_FILE),
+                    self.script_dst)
 
         src = os.path.join(self.lxcdefaults, "guest")
         dst = os.path.join(self.guestpath, "guest")
@@ -180,4 +182,3 @@ class Container(object):
         self.container.wait('STOPPED', const.STOP_TIMEOUT)
         logger.info("Container '%s' stopped", self.name)
         return 0 if not self.running else 1
-

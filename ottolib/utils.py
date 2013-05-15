@@ -36,10 +36,11 @@ def set_logging(debugmode=False):
     """ Initialize logging """
     basic_formatting = "%(asctime)s %(levelname)s %(message)s"
     if debugmode:
-        basic_formatting = "<%(module)s:%(lineno)d - %(threadName)s> " + basic_formatting
+        basic_formatting = "<%(module)s:%(lineno)d - %(threadName)s> " + \
+            basic_formatting
     logging.basicConfig(format=basic_formatting)
-    rootLogger = logging.getLogger()
-    rootLogger.setLevel(logging.DEBUG if debugmode else logging.INFO)
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG if debugmode else logging.INFO)
     logger.debug('Debug mode enabled')
 
 
@@ -104,14 +105,14 @@ def service_exists(service):
     """
     cmd = ["status", service]
     try:
-        msg = subprocess.check_output(cmd)
+        subprocess.check_output(cmd)
         return 0
-    except subprocess.CalledProcessErrori as cpe:
+    except subprocess.CalledProcessError as cpe:
         if "status: Unknown job:" in cpe.output:
             return 1
         else:
             # Unknown Error
-            logging.errort(
+            logger.error(
                 "'{}' failed with error:\n{}".format(cmd, cpe.output))
             return -1
 
@@ -149,8 +150,8 @@ def service_start_stop(service, start):
         cmd = [start.lower(), service.lower()]
         logger.debug("Executing: %s", cmd)
         try:
-            msg = subprocess.check_output(cmd)
-        except subprocess.CalledProcessErrori as cpe:
+            subprocess.check_output(cmd)
+        except subprocess.CalledProcessError as cpe:
             logger.error(
                 "'{}' failed with status %d:\n{}".format(
                     cmd, cpe.returncode, cpe.output))
@@ -180,7 +181,7 @@ def get_image_type(path):
 
     try:
         msg = subprocess.check_output(cmd)
-    except subprocess.CalledProcessErrori as cpe:
+    except subprocess.CalledProcessError as cpe:
         logger.error("'{}' failed with status %d:\n{}".format(
             cmd, cpe.returncode, cpe.output))
         return "error"
@@ -222,16 +223,8 @@ def copy_image(image, destpath):
             md5sums = {}
             with open(md5sum_path) as fmd5:
                 for line in fmd5:
-                    (digest, file) = line.strip().split(maxsplit=1)
-                    md5sums[file] = digest
-
-            # Extract manifest. It is used to get the timestamp of
-            # filesystem.squashfs without extracting the big squashfs. It
-            # could be any file generated at the same time
-            manifest = extract_file_from_iso("casper/filesystem.manifest",
-                                             image, tmpdir)
-            manifest_ts = strftime("%Y%m%d_%H", gmtime(os.path.getmtime(
-                os.path.join(tmpdir, "casper/filesystem.manifest"))))
+                    (digest, filename) = line.strip().split(maxsplit=1)
+                    md5sums[filename] = digest
 
             # The squashfs is extracted from the ISO only if it doesn't
             # already exists in the cache directory. We ensure that it is
@@ -239,7 +232,7 @@ def copy_image(image, destpath):
             # squashfs. Since the ISO is read-only, it is always
             # the same for a given build.
             md5sum = md5sums["./casper/filesystem.squashfs"]
-            cached_files = glob(os.path.join( destdir, "*-%s.squashfs" %
+            cached_files = glob(os.path.join(destdir, "*-%s.squashfs" %
                                              md5sum))
             if len(cached_files) == 0:
                 squashfs_src = extract_file_from_iso(
@@ -263,7 +256,8 @@ def copy_image(image, destpath):
             if md5sum is None:
                 md5sum = compute_md5sum(squashfs_src)
 
-            cached_files = glob(os.path.join( destdir, "*-%s.squashfs" % md5sum))
+            cached_files = glob(os.path.join(
+                destdir, "*-%s.squashfs" % md5sum))
             if len(cached_files) > 0:  # Should be 1 really
                 logger.debug("File '%s' already in cache", cached_files[0])
                 squashfs_dst = cached_files[0]
@@ -283,7 +277,8 @@ def copy_image(image, destpath):
                                         gmtime(os.path.getmtime(sqfs_root)))
 
                 # Copy it to destination directory
-                squashfs_dst = "filesystem-%s-%s.squashfs" % (sqfs_root_ts, md5sum)
+                squashfs_dst = "filesystem-%s-%s.squashfs" % (
+                    sqfs_root_ts, md5sum)
                 if not os.path.exists(destdir):
                     os.makedirs(destdir)
                 shutil.copy2(squashfs_src, os.path.join(destdir, squashfs_dst))
@@ -298,46 +293,46 @@ def copy_image(image, destpath):
     return squashfs_dst
 
 
-def extract_file_from_iso(file, iso, dest):
+def extract_file_from_iso(filename, iso, dest):
     """ Extract a file from an ISO
     """
     if not shutil.which("bsdtar"):
         logger.error("bsdtar not found in path. It is needed to extract iso "
                      "files")
-    cmd = ["bsdtar", "xf", iso, "-C", dest, file]
+    cmd = ["bsdtar", "xf", iso, "-C", dest, filename]
     try:
-        logger.debug("Extracting %s from %s to %s", file, iso, dest)
+        logger.debug("Extracting %s from %s to %s", filename, iso, dest)
         subprocess.check_call(cmd)
-        out = os.path.join(dest, file)
+        out = os.path.join(dest, filename)
         return out
     except subprocess.CalledProcessError:
         return None
 
 
-def extract_file_from_squashfs(file, sqfs, dest):
+def extract_file_from_squashfs(filename, sqfs, dest):
     """ Extract a file from an ISO
     """
     if not shutil.which("unsquashfs"):
         logger.error("unsquashfs not found in path. It is needed to extract "
-                      "squashfs files")
-    cmd = ["unsquashfs",  "-f", "-n", "-d", dest, sqfs, file]
+                     "squashfs files")
+    cmd = ["unsquashfs",  "-f", "-n", "-d", dest, sqfs, filename]
     try:
-        logger.debug("Extracting %s from %s to %s", file, sqfs, dest)
+        logger.debug("Extracting %s from %s to %s", filename, sqfs, dest)
         subprocess.check_call(cmd)
-        out = os.path.join(dest, file)
+        out = os.path.join(dest, filename)
         return out
     except subprocess.CalledProcessError:
         return None
 
 
-def compute_md5sum(file):
+def compute_md5sum(filename):
     """ Validate an MD5 checksum """
     block_size = 2**20
-    logger.debug("Calculating hash for file '%s'", file)
+    logger.debug("Calculating hash for file '%s'", filename)
     md5sum = hashlib.md5()
-    with open(file, "rb") as f:
+    with open(filename, "rb") as fhd:
         while True:
-            data = f.read(block_size)
+            data = fhd.read(block_size)
             if not data:
                 break
             md5sum.update(data)
@@ -350,8 +345,8 @@ def exit_missing_imports(modulename, package):
     """ Exit if a required import is missing """
     try:
         __import__(modulename)
-    except ImportError as e:
-        print("{}: you need to install {}".format(e, package))
+    except ImportError as exc:
+        print("{}: you need to install {}".format(exc, package))
         sys.exit(1)
 
 

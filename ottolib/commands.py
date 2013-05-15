@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 import os
 import subprocess
 import sys
-import os
 import shutil
 from textwrap import dedent
 
@@ -92,8 +91,10 @@ class Commands(object):
         pstop.add_argument("name", help="name of the container")
         pstop.set_defaults(func=self.cmd_stop)
 
-        phelp = subparser.add_parser("help", help="Get help on one of those commands")
-        phelp.add_argument("command", help="name of the command to get help on")
+        phelp = subparser.add_parser("help",
+                                     help="Get help on one of those commands")
+        phelp.add_argument("command",
+                           help="name of the command to get help on")
         phelp.set_defaults(help=self.cmd_stop)
 
         cmd_parsers = {"create": pcreate, "destroy": pdestroy,
@@ -111,9 +112,9 @@ class Commands(object):
             self.run = self.args.func
             try:
                 self.container = container.Container(self.args.name)
-            except Exception as e:
+            except Exception as exc:
                 logger.error("Error when trying to initiate the container: "
-                             "{}".format(e))
+                             "{}".format(exc))
                 sys.exit(1)
 
     def cmd_create(self):
@@ -156,16 +157,18 @@ class Commands(object):
             if self.container.squashfs_path is None:
                 return 1
 
-        logger.debug("selected squashfs is: {}".format(self.container.squashfs_path))
+        logger.debug("selected squashfs is: {}".format(
+            self.container.squashfs_path))
         if not os.path.isfile(self.container.squashfs_path):
-            logger.error("{} doesn't exist. Please provide an iso or a squashfs "
-                         "when starting the container.".format(self.container.squashfs_path))
+            logger.error("{} doesn't exist. Please provide an iso or a "
+                         "squashfs when starting the container.".format(
+                             self.container.squashfs_path))
             return 1
 
         if self.args.custom_installation is not None:
             if os.path.isdir(self.args.custom_installation):
-                logging.info("Customizing container from "
-                             "'{}'".format(self.args.custom_installation))
+                logger.info("Customizing container from "
+                            "'{}'".format(self.args.custom_installation))
                 shutil.copytree(self.args.custom_installation,
                                 os.path.join(self.container.guestpath,
                                              'custom-installation'))
