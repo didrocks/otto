@@ -21,6 +21,7 @@ Commands class - part of the project otto
 #
 import argparse
 import logging
+import subprocess
 from ottolib import utils, container, const
 
 
@@ -88,7 +89,14 @@ class Commands(object):
 
         @return: Return code of Container.start() method
         """
-        # TODO: Any extra check to prevent kicking a user from the system
+        # Don't shoot any logged in user
+        try:
+            subprocess.check_call(["pidof", "gnome-session"])
+            logging.warning("Please logout before starting the container")
+            return 1
+        except subprocess.CalledProcessError:
+            pass
+
         srv = "lightdm"
         ret = utils.service_stop(srv)
         if ret > 2:  # Not enough privileges or Unknown error: Abort
