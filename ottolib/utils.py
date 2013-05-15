@@ -18,16 +18,17 @@ Utilities - part of the project otto
 # You should have received a copy of the GNU General Public License along with
 # this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-#
+
+from glob import glob
+import hashlib
 import logging
 import os
+import shutil
 import stat
 import subprocess
+import sys
 from tempfile import TemporaryDirectory
-import shutil
-import hashlib
 from time import gmtime, strftime
-from glob import glob
 
 
 def set_logging(debugmode=False):
@@ -329,3 +330,12 @@ def compute_md5sum(file):
 
     logging.debug("Local File Checksum: '%s'", md5sum.hexdigest())
     return md5sum.hexdigest()
+
+
+def exit_missing_imports(modulename, package):
+    '''Exit if a required import is missing'''
+    try:
+        __import__(modulename)
+    except ImportError as e:
+        print("{}: you need to install {}".format(e, package))
+        sys.exit(1)

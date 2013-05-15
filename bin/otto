@@ -24,36 +24,28 @@ import logging
 import os
 import sys
 
-OTTOLIB = os.path.normpath(os.path.join(sys.path[0], ".."))
+OTTOLIB = os.path.abspath(os.path.dirname(sys.path[0]))
 if os.path.isdir(OTTOLIB):
-    sys.path.insert(1, OTTOLIB)
+    sys.path.insert(0, OTTOLIB)
+
+from ottolib.utils import exit_missing_imports
+
+# Check requirements
+exit_missing_imports('lxc', 'python3-lxc')
 
 from ottolib import commands
 
 
-class Otto(object):
-    """ Main class
-    """
-    def __init__(self):
-        """ Constructor
-        """
-        self.cmds = commands.Commands()
-
-        # Root privileges required to handle LXC containers
-        if os.getuid() != 0:
-            logging.error("This script must be run as root")
-            sys.exit(1)
-
-    def main(self):
-        """ Main routine
-        """
-        logging.debug('Main')
-        if self.cmds.run is not None:
-            return self.cmds.run()
-        else:
-            return 1
-
-
 if __name__ == "__main__":
-    OTTO = Otto()
-    sys.exit(OTTO.main())
+
+    cmd = commands.Commands()
+
+    # Root privileges required to handle LXC containers
+    if os.getuid() != 0:
+        logging.error("This script must be run as root")
+        sys.exit(1)
+
+    if cmd.run is None:
+        sys.exit(1)
+
+    sys.exit(cmd.run())
