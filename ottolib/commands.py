@@ -46,13 +46,13 @@ class Commands(object):
         parser = argparse.ArgumentParser(
             formatter_class=argparse.RawDescriptionHelpFormatter,
             description=dedent('''\
-Manages containers to run automated UI tests with LXC.
+                Manages containers to run automated UI tests with LXC.
 
-This script must be run with root privileges without any user logged into a
-graphical session as the display manager will be shutdown.
-Physical devices (video, sound and input) are shared between the host and the
-guest, and any action on one side will have effects on the other side, so it is
-recommended to not touch the device under test while the test is running.
+                This script must be run with root privileges without any user logged into a
+                graphical session as the display manager will be shutdown.
+                Physical devices (video, sound and input) are shared between the host and the
+                guest, and any action on one side will have effects on the other side, so it is
+                recommended to not touch the device under test while the test is running.
                                '''))
         parser.add_argument('-d', '--debug', action='store_true',
                             default=False, help='enable debug mode')
