@@ -185,8 +185,8 @@ def get_image_type(path):
         return "unknown"
 
 
-def copy_image(image, destdir):
-    """ Copy a squashfs to destdir
+def copy_image(image, destpath):
+    """ Copy a squashfs to destpath
 
     If the image passed in argument is an ISO, the squashfs is extracted to
     destdir. The version of the image is extracted from the squashfs to
@@ -194,7 +194,8 @@ def copy_image(image, destdir):
     file media-info is found on the image.
 
     @image: path to an image
-    @destdir: destination path
+    @destpath: destination path, including filename
+               (it will be a symlink within the same directory)
 
     @return: Path to squashfs file in cache
     """
@@ -204,6 +205,8 @@ def copy_image(image, destdir):
     squashfs_src = None
     squashfs_dst = None
     md5sum = None
+
+    destdir = os.path.abspath(os.path.dirname(destpath))
 
     with TemporaryDirectory(prefix="otto.") as tmpdir:
         if image_type == "iso9660":

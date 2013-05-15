@@ -22,6 +22,7 @@ Commands class - part of the project otto
 import argparse
 import logging
 logger = logging.getLogger(__name__)
+import os
 import subprocess
 import sys
 from textwrap import dedent
@@ -106,7 +107,7 @@ class Commands(object):
                 self.container = container.Container(self.args.name)
             except Exception as e:
                 logger.error("Error when trying to initiate the container: "
-                    "{}".format(e))
+                             "{}".format(e))
                 sys.exit(1)
 
     def cmd_create(self):
@@ -144,10 +145,14 @@ class Commands(object):
             # An image has been passed on the cmdline, dump the squashfs to
             # cache directory
             if self.args.image is not None:
-                self.container.squashfs_path = utils.copy_image(
-                    self.args.image, const.CACHEDIR)
-                if self.container.squashfs_path is None:
-                    return 1
+                self.container.squashfs_path = self.container.copy_image(
+                    self.args.image, self.container.squashfs_path)
+
+        logger.debug("selected squashfs is: {}".format(self.container.squashfs_path))
+        if not os.path.isfile(self.container.squashfs_path):
+            logger.error("{} doesn't exist. Please provide an iso or a squashfs "
+                         "when starting the container.".format(self.container.squashfs_path))
+            return 1
 
         if not self.container.start():
             return 1

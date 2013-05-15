@@ -27,24 +27,24 @@
 # - Add an option to restore from an existing delta
 
 BASEDIR=$(dirname $LXC_CONFIG_FILE)
-CACHEDIR=/var/cache/otto
+CUSTOM_INSTALLATION_DIR=$BASEDIR/custom-installation/
 rootfs=$LXC_ROOTFS_PATH
 RELEASE=$(distro-info --devel)
 ARCH=$(dpkg --print-architecture)
 TESTUSER=ubuntu
 
-CUSTOM_INSTALLATION_DIR=""
-SQUASHFS_PATH="${CACHEDIR}/filesystem.squashfs"
-
-# TODO: Pass config file in argument
 OTTORC=$BASEDIR/scripts/otto.rc
 [ -r "$OTTORC" ] && . $OTTORC
+# TODO: Pass config file in argument
+# override default parameters (generated for the run)
+[ -r "$OTTORC.override" ] && . $OTTORC.override
+
 
 prepare_fs() {
     # This function prepares the container with the directories required to
     # expose hardware from the host to the container, mounts the ISO and
     # extracts the squashfs and prepares the overlay used to store the delta
-    # 
+    #
     # $1: Path to squashfs file
     #
     squashfs_path=$(readlink -f $1)
@@ -88,7 +88,7 @@ prepare_user() {
         exit 1
     fi
 
- 
+
     # Adds the user to the 'video' group as ACLs will not work in the
     # container on bind-mounted devices
 	chroot $rootfs adduser $username video || true
@@ -97,7 +97,7 @@ prepare_user() {
 }
 
 configure_system() {
-    # Configure the last bits of the system: 
+    # Configure the last bits of the system:
     #  - hosts, hostname and networking
     #  - Sources list
     #  - Locale
@@ -111,7 +111,7 @@ configure_system() {
         exit 1
     fi
 
-    # Sets hostname 
+    # Sets hostname
 	hostname=$LXC_NAME
 	echo "$hostname" > $rootfs/etc/hostname
 	cat <<EOF > $rootfs/etc/hosts

@@ -21,7 +21,7 @@ Various Constants - part of the project otto
 
 
 LXCBASE = "/var/lib/lxc"
-CACHEDIR = "/var/cache/otto"
+DEFAULT_CONFIG_FILE = "otto.rc"
 
 START_TIMEOUT = 60
 STOP_TIMEOUT = 30

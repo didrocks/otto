@@ -1,2 +1,3 @@
-SQUASHFS_PATH=/var/cache/otto/$(readlink -f filesystem.squashfs)
-CUSTOM_INSTALLATION_DIR=$(dirname $LXC_CONFIG_FILE)/custom-installation/
+# those default values can be overriden by otto
+CACHE_DIR=/var/cache/otto
+SQUASHFS_PATH=$CACHE_DIR/filesystem.squashfs

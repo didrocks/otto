@@ -27,6 +27,7 @@ import shutil
 import sys
 
 from . import const, utils
+from .configgenerator import ConfigGenerator
 
 
 class Container(object):
@@ -38,7 +39,17 @@ class Container(object):
         self.wait = self.container.wait
         self.guestpath = os.path.join(const.LXCBASE, name)
         self.lxcdefaults = os.path.join(utils.get_base_dir(), "lxc.defaults")
-        self.squashfs = None
+        self.script_src = os.path.join(self.lxcdefaults, "scripts")
+        self.script_dst = os.path.join(self.guestpath, "scripts")
+        self.otto_config = ConfigGenerator(self.script_src, self.script_dst)
+
+    @property
+    def squashfs_path(self):
+        return self.otto_config.squashfs_path
+
+    @squashfs_path.setter
+    def squashfs_path(self, value):
+        self.otto_config.squashfs_path = value
 
     @property
     def running(self):
@@ -89,11 +100,9 @@ class Container(object):
 
         shutil.copy(os.path.join(self.lxcdefaults, "fstab"), self.guestpath)
 
-        src = os.path.join(self.lxcdefaults, "scripts")
-        dst = os.path.join(self.guestpath, "scripts")
-        shutil.copy(os.path.join(src, "pre-mount.sh"), dst)
-        utils.set_executable(os.path.join(dst, "pre-mount.sh"))
-        shutil.copy(os.path.join(src, "otto.rc"), dst)
+        shutil.copy(os.path.join(self.script_src, "pre-mount.sh"), self.script_dst)
+        utils.set_executable(os.path.join(self.script_dst, "pre-mount.sh"))
+        shutil.copy(os.path.join(self.script_src, const.DEFAULT_CONFIG_FILE), self.script_dst)
 
         src = os.path.join(self.lxcdefaults, "guest")
         dst = os.path.join(self.guestpath, "guest")
