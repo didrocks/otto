@@ -23,6 +23,7 @@ import argparse
 import logging
 import subprocess
 import sys
+from textwrap import dedent
 
 from . import const, container, utils
 
@@ -43,8 +44,16 @@ class Commands(object):
     def __parse_args(self):
         """ Parse command line arguments """
         parser = argparse.ArgumentParser(
-            description="Manages containers used to run automated UI tests "
-            "with LXC")
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description=dedent('''\
+Manages containers to run automated UI tests with LXC.
+
+This script must be run with root privileges without any user logged into a
+graphical session as the display manager will be shutdown.
+Physical devices (video, sound and input) are shared between the host and the
+guest, and any action on one side will have effects on the other side, so it is
+recommended to not touch the device under test while the test is running.
+                               '''))
         parser.add_argument('-d', '--debug', action='store_true',
                             default=False, help='enable debug mode')
         subparser = parser.add_subparsers(title='commands',
@@ -65,6 +74,10 @@ class Commands(object):
                             help="iso or squashfs to use as rootfs. If an "
                             "ISO is used, the squashfs contained in this "
                             "image will be extracted and used as rootfs")
+        pstart.add_argument('-D', '--force-disconnect', action='store_true',
+                            default=False,
+                            help="Forcibly shutdown lightdm even if a session "
+                            "is running and a user might be connected.")
         pstart.set_defaults(func=self.cmd_start)
 
         pstop = subparser.add_parser("stop", help="Stop a container")
@@ -104,12 +117,16 @@ class Commands(object):
         @return: Return code of Container.start() method
         """
         # Don't shoot any logged in user
-        try:
-            subprocess.check_call(["pidof", "gnome-session"])
-            logging.warning("Please logout before starting the container")
-            return 1
-        except subprocess.CalledProcessError:
-            pass
+        if not self.args.force_disconnect:
+            try:
+                subprocess.check_call(["pidof", "gnome-session"])
+                logging.warning("gnome-session is running. This likely means "
+                                "that a user is logged in and will be "
+                                "forcibly disconnected. Please logout before "
+                                "starting the container or use option -D")
+                return 1
+            except subprocess.CalledProcessError:
+                pass
 
         srv = "lightdm"
         ret = utils.service_stop(srv)
@@ -125,10 +142,26 @@ class Commands(object):
                     self.args.image, const.CACHEDIR)
                 if self.container.squashfs_path is None:
                     return 1
-        # TODO:
-        #   - Wait for start
-        #   - Poll logs until stopped
-            return self.container.start()
+
+        if not self.container.start():
+            return 1
+
+        # Block until the end of the container
+        #
+        # NOTE:
+        # This doesn't support reboots of the container yet. To support
+        # reboots we'd need to check that the container is still stopped a
+        # little while after the initial 'STOPPED' state. If it is back to
+        # 'RUNNING' it'd mean the container restarted, then it should block on
+        # 'STOPPED' again with a new timeout = TEST_TIMEOUT -
+        # time_elapsed_since_start_of_the_session
+        self.container.wait('STOPPED', const.TEST_TIMEOUT)
+        if self.container.running:
+            logging.error("Test didn't stop within %d seconds",
+                          const.TEST_TIMEOUT)
+            self.container.stop()  # Or kill
+            return 1
+        return 0
 
     def cmd_stop(self):
         """ Stops a container """

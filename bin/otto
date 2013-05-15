@@ -42,7 +42,8 @@ if __name__ == "__main__":
 
     # Root privileges required to handle LXC containers
     if os.getuid() != 0:
-        logging.error("This script must be run as root")
+        logging.error("You must have root privileges to run this "
+                          "script.")
         sys.exit(1)
 
     if cmd.run is None:
