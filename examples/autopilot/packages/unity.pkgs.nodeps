@@ -28,12 +28,4 @@ libappindicator1
 gir1.2-appindicator3-0.1
 libdbusmenu-qt5
 appmenu-qt5
-qmenumodel
-indicators-client
-indicators-client-plugin-network
-indicators-client-plugin-sound
-indicators-client-plugin-messaging
-indicators-client-plugin-power
-indicators-client-plugin-datetime
-indicators-client-examples
 indicator-network
