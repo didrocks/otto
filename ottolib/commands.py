@@ -22,6 +22,7 @@ Commands class - part of the project otto
 import argparse
 import logging
 import subprocess
+from textwrap import dedent
 from ottolib import utils, container, const
 
 
@@ -41,8 +42,16 @@ class Commands(object):
     def __parse_args(self):
         """ Parse command line arguments """
         parser = argparse.ArgumentParser(
-            description="Manages containers used to run automated UI tests "
-            "with LXC")
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description=dedent('''\
+Manages containers to run automated UI tests with LXC.
+
+This script must be run with root privileges without any user logged into a
+graphical session as the display manager will be shutdown.
+Physical devices (video, sound and input) are shared between the host and the
+guest, and any action on one side will have effects on the other side, so it is
+recommended to not touch the device under test while the test is running.
+                               '''))
         parser.add_argument('-d', '--debug', action='store_true',
                             default=False, help='enable debug mode')
         subparser = parser.add_subparsers()
@@ -62,6 +71,10 @@ class Commands(object):
                             help="iso or squashfs to use as rootfs. If an "
                             "ISO is used, the squashfs contained in this "
                             "image will be extracted and used as rootfs")
+        pstart.add_argument('-D', '--force-disconnect', action='store_true',
+                            default=False,
+                            help="Forcibly shutdown lightdm even if a session "
+                            "is running and a user might be connected.")
         pstart.set_defaults(func=self.cmd_start)
 
         pstop = subparser.add_parser("stop", help="Stop a container")
@@ -90,12 +103,16 @@ class Commands(object):
         @return: Return code of Container.start() method
         """
         # Don't shoot any logged in user
-        try:
-            subprocess.check_call(["pidof", "gnome-session"])
-            logging.warning("Please logout before starting the container")
-            return 1
-        except subprocess.CalledProcessError:
-            pass
+        if not self.args.force_disconnect:
+            try:
+                subprocess.check_call(["pidof", "gnome-session"])
+                logging.warning("gnome-session is running. This likely means "
+                                "that a user is logged in and will be "
+                                "forcibly disconnected. Please logout before "
+                                "starting the container or use option -D")
+                return 1
+            except subprocess.CalledProcessError:
+                pass
 
         srv = "lightdm"
         ret = utils.service_stop(srv)
