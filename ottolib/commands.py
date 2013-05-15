@@ -22,6 +22,7 @@ Commands class - part of the project otto
 import argparse
 import logging
 import subprocess
+import sys
 
 from . import const, container, utils
 
@@ -32,8 +33,8 @@ class Commands(object):
     This class parses the command line, does some basic checks and sets the
     method for the command passed on the command line
     """
+
     def __init__(self):
-        """ Constructor """
         self.args = None
         self.run = None
         self.container = None
@@ -46,7 +47,8 @@ class Commands(object):
             "with LXC")
         parser.add_argument('-d', '--debug', action='store_true',
                             default=False, help='enable debug mode')
-        subparser = parser.add_subparsers()
+        subparser = parser.add_subparsers(title='commands',
+                                          dest='cmd_name')
 
         pcreate = subparser.add_parser("create", help="Create a new container")
         pcreate.add_argument("name", help="name of the container")
@@ -69,13 +71,24 @@ class Commands(object):
         pstop.add_argument("name", help="name of the container")
         pstop.set_defaults(func=self.cmd_stop)
 
+        phelp = subparser.add_parser("help", help="Get help on one of those commands")
+        phelp.add_argument("command", help="name of the command to get help on")
+        phelp.set_defaults(help=self.cmd_stop)
+
+        cmd_parsers = {"create": pcreate, "destroy": pdestroy,
+                       "start": pstart, "stop": pstop, "help": phelp}
+
         self.args = parser.parse_args()
         utils.set_logging(self.args.debug)
-        if hasattr(self.args, "func"):
+        if self.args.cmd_name == "help":
+            try:
+                cmd_parsers[self.args.command].print_help()
+            except KeyError:
+                parser.print_help()
+            sys.exit(0)
+        else:
             self.run = self.args.func
             self.container = container.Container(self.args.name)
-        else:
-            parser.print_help()
 
     def cmd_create(self):
         """ Creates a new container """
@@ -101,8 +114,8 @@ class Commands(object):
         srv = "lightdm"
         ret = utils.service_stop(srv)
         if ret > 2:  # Not enough privileges or Unknown error: Abort
-            logging.error("An error occurred while stopping service '%s'. "
-                          "Aborting!", srv)
+            logging.error("An error occurred while stopping service '{}'. "
+                          "Aborting!".format(srv))
             return ret
         else:
             # An image has been passed on the cmdline, dump the squashfs to
@@ -119,8 +132,8 @@ class Commands(object):
 
     def cmd_stop(self):
         """ Stops a container """
-        logging.info("Stopping container '%s'", self.args.name)
-        logging.info("Container '%s' stopped", self.args.name)
+        logging.info("Stopping container '{}'".format(self.args.name))
+        logging.info("Container '{}' stopped".format(self.args.name))
         # TODO:
         #   - Wait for stop
         return self.container.stop()
