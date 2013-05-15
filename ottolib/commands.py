@@ -111,10 +111,26 @@ class Commands(object):
                     self.args.image, const.CACHEDIR)
                 if self.container.squashfs_path is None:
                     return 1
-        # TODO:
-        #   - Wait for start
-        #   - Poll logs until stopped
-            return self.container.start()
+
+        if not self.container.start():
+            return 1
+
+        # Block until the end of the container
+        #
+        # NOTE:
+        # This doesn't support reboots of the container yet. To support
+        # reboots we'd need to check that the container is still stopped a
+        # little while after the initial 'STOPPED' state. If it is back to
+        # 'RUNNING' it'd mean the container restarted, then it should block on
+        # 'STOPPED' again with a new timeout = TEST_TIMEOUT -
+        # time_elapsed_since_start_of_the_session
+        self.container.wait('STOPPED', const.TEST_TIMEOUT)
+        if self.container.running:
+            logging.error("Test didn't stop within %d seconds",
+                          const.TEST_TIMEOUT)
+            self.container.stop()  # Or kill
+            return 1
+        return 0
 
     def cmd_stop(self):
         """ Stops a container """
