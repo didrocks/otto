@@ -22,6 +22,7 @@ Utilities - part of the project otto
 from glob import glob
 import hashlib
 import logging
+logger = logging.getLogger(__name__)
 import os
 import shutil
 import stat
@@ -33,10 +34,13 @@ from time import gmtime, strftime
 
 def set_logging(debugmode=False):
     """Initialize logging"""
-    logging.basicConfig(
-        level=logging.DEBUG if debugmode else logging.INFO,
-        format="%(asctime)s %(levelname)s %(message)s")
-    logging.debug('Debug mode enabled')
+    basic_formatting = "%(asctime)s %(levelname)s %(message)s"
+    if debugmode:
+        basic_formatting = "<%(module)s:%(lineno)d - %(threadName)s> " + basic_formatting
+    logging.basicConfig(format=basic_formatting)
+    rootLogger = logging.getLogger()
+    rootLogger.setLevel(logging.DEBUG if debugmode else logging.INFO)
+    logger.debug('Debug mode enabled')
 
 
 def set_executable(path):
@@ -80,15 +84,15 @@ def service_is_running(service):
         return -1
 
     if "start/running" in msg:
-        logging.debug("Service '%s' is running", service)
+        logger.debug("Service '%s' is running", service)
         return True
     elif "stop/waiting" in msg:
-        logging.debug("Service '%s' is stopped", service)
+        logger.debug("Service '%s' is stopped", service)
         return False
 
     # Happens if the service doesn't exist on the system
-    logging.error("'status %s' failed with exit status %d:\n%s", service, ret,
-                  msg)
+    logger.error("'status %s' failed with exit status %d:\n%s", service, ret,
+                 msg)
     return -1
 
 
@@ -125,7 +129,7 @@ def service_start_stop(service, start):
              99  on any other error
     """
     if os.getuid() != 0:
-        logging.error("You must be root to manage upstart services. Aborting!")
+        logger.error("You must be root to manage upstart services. Aborting!")
         return 3
 
     exists = service_exists(service)
@@ -140,14 +144,14 @@ def service_start_stop(service, start):
         return 99
 
     if status == (start == "start"):
-        logging.info("Service '%s' already in state '%s'", service, start)
+        logger.info("Service '%s' already in state '%s'", service, start)
     else:
         cmd = "%s %s" % (start.lower(), service.lower())
-        logging.debug("Executing: %s", cmd)
+        logger.debug("Executing: %s", cmd)
         (ret, msg) = subprocess.getstatusoutput(cmd)
 
         if ret != 0:
-            logging.error("'%s' failed with status %d:\n%s", cmd, ret, msg)
+            logger.error("'%s' failed with status %d:\n%s", cmd, ret, msg)
             return 1
 
     return 0
@@ -167,7 +171,7 @@ def get_image_type(path):
         "Squashfs filesystem": "squashfs"
     }
     if not os.path.isfile(path):
-        logging.warning("File '%s' does not exist!", path)
+        logger.warning("File '%s' does not exist!", path)
         return "error"
 
     (ret, msg) = subprocess.getstatusoutput("file -b %s" % path)
@@ -176,7 +180,7 @@ def get_image_type(path):
     else:
         for sig, imgtype in imgtypes.items():
             if msg.lower().startswith(sig.lower()):
-                logging.debug("Found type '%s' for file '%s'", imgtype, path)
+                logger.debug("Found type '%s' for file '%s'", imgtype, path)
                 return imgtype
         return "unknown"
 
@@ -194,7 +198,7 @@ def copy_image(image, destdir):
 
     @return: Path to squashfs file in cache
     """
-    logging.info("Updating cached squashfs from '%s'", image)
+    logger.info("Updating cached squashfs from '%s'", image)
     image_type = get_image_type(image)
 
     squashfs_src = None
@@ -232,8 +236,8 @@ def copy_image(image, destdir):
                     "casper/filesystem.squashfs", image, tmpdir)
                 squashfs_md5 = compute_md5sum(squashfs_src)
                 if squashfs_md5 != md5sum:
-                    logging.error("Checksum of '%s' validation failed. "
-                                  "Expected '%s', got '%s'. Aborting!")
+                    logger.error("Checksum of '%s' validation failed. "
+                                 "Expected '%s', got '%s'. Aborting!")
                     return None
             else:
                 squashfs_src = cached_files[0]
@@ -251,7 +255,7 @@ def copy_image(image, destdir):
 
             cached_files = glob(os.path.join( destdir, "*-%s.squashfs" % md5sum))
             if len(cached_files) > 0:  # Should be 1 really
-                logging.debug("File '%s' already in cache", cached_files[0])
+                logger.debug("File '%s' already in cache", cached_files[0])
                 squashfs_dst = cached_files[0]
             else:
                 # Extract metadata from the squashfs
@@ -276,7 +280,7 @@ def copy_image(image, destdir):
 
             # Recreate symlink to this file
             destlink = os.path.join(destdir, "filesystem.squashfs")
-            logging.debug("Updating symlink '%s'", destlink)
+            logger.debug("Updating symlink '%s'", destlink)
             if os.path.islink(destlink):
                 os.unlink(destlink)
             os.symlink(squashfs_dst, destlink)
@@ -288,11 +292,11 @@ def extract_file_from_iso(file, iso, dest):
     """ Extract a file from an ISO
     """
     if not shutil.which("bsdtar"):
-        logging.error("bsdtar not found in path. It is needed to extract iso "
-                      "files")
+        logger.error("bsdtar not found in path. It is needed to extract iso "
+                     "files")
     cmd = ["bsdtar", "xf", iso, "-C", dest, file]
     try:
-        logging.debug("Extracting %s from %s to %s", file, iso, dest)
+        logger.debug("Extracting %s from %s to %s", file, iso, dest)
         subprocess.check_call(cmd)
         out = os.path.join(dest, file)
         return out
@@ -304,11 +308,11 @@ def extract_file_from_squashfs(file, sqfs, dest):
     """ Extract a file from an ISO
     """
     if not shutil.which("unsquashfs"):
-        logging.error("unsquashfs not found in path. It is needed to extract "
+        logger.error("unsquashfs not found in path. It is needed to extract "
                       "squashfs files")
     cmd = ["unsquashfs",  "-f", "-n", "-d", dest, sqfs, file]
     try:
-        logging.debug("Extracting %s from %s to %s", file, sqfs, dest)
+        logger.debug("Extracting %s from %s to %s", file, sqfs, dest)
         subprocess.check_call(cmd)
         out = os.path.join(dest, file)
         return out
@@ -319,7 +323,7 @@ def extract_file_from_squashfs(file, sqfs, dest):
 def compute_md5sum(file):
     """ Validate an MD5 checksum """
     block_size = 2**20
-    logging.debug("Calculating hash for file '%s'", file)
+    logger.debug("Calculating hash for file '%s'", file)
     md5sum = hashlib.md5()
     with open(file, "rb") as f:
         while True:
@@ -328,7 +332,7 @@ def compute_md5sum(file):
                 break
             md5sum.update(data)
 
-    logging.debug("Local File Checksum: '%s'", md5sum.hexdigest())
+    logger.debug("Local File Checksum: '%s'", md5sum.hexdigest())
     return md5sum.hexdigest()
 
 

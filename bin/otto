@@ -21,6 +21,8 @@ This script is used to manage containers used to run automated UI tests
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 #
 import logging
+logger = logging.getLogger(__name__)
+logging.captureWarnings(True)
 import os
 import sys
 
@@ -39,13 +41,6 @@ from ottolib import commands
 if __name__ == "__main__":
 
     cmd = commands.Commands()
-
-    # Root privileges required to handle LXC containers
-    if os.getuid() != 0:
-        logging.error("You must have root privileges to run this "
-                          "script.")
-        sys.exit(1)
-
     if cmd.run is None:
         sys.exit(1)
 

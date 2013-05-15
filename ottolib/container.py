@@ -20,6 +20,7 @@ Class to manage LXC - part of the project otto
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 import logging
+logger = logging.getLogger(__name__)
 import lxc
 import os
 import shutil
@@ -62,11 +63,11 @@ class Container(object):
             - Normalize return codes as currently the same RC can mean different
               things
         """
-        logging.info("Creating container '%s'", self.name)
+        logger.info("Creating container '%s'", self.name)
 
         # Create root tree
         if os.path.exists(self.guestpath):
-            logging.error("Container already exists. Exiting!")
+            logger.error("Container already exists. Exiting!")
             sys.exit(1)
 
         # Base rootfs
@@ -98,7 +99,7 @@ class Container(object):
         shutil.copy(os.path.join(src, "check-installed"), dst)
         utils.set_executable(os.path.join(dst, "check-installed"))
 
-        logging.debug("Done")
+        logger.debug("Done")
         return 0
 
     def destroy(self):
@@ -108,9 +109,9 @@ class Container(object):
         if it fails to cover the case of a partially created LXC container i.e
         a directory tree without a configuration file
         """
-        logging.info("Removing container '%s'", self.name)
+        logger.info("Removing container '%s'", self.name)
         if not self.container.destroy():
-            logging.warning("lxc-destroy failed, trying to remove directory")
+            logger.warning("lxc-destroy failed, trying to remove directory")
             # We check that LXCBASE/NAME/config exists because if it does then
             # lxc destroy should have succeeded and the failure is elsewhere,
             # for example the container is still running
@@ -120,10 +121,10 @@ class Container(object):
                         os.path.join(self.guestpath, "config")):
                 shutil.rmtree(self.guestpath)
             else:
-                logging.info("Path doesn't exist '%s'. Ignoring.",
-                             self.guestpath)
+                logger.info("Path doesn't exist '%s'. Ignoring.",
+                            self.guestpath)
                 return 1
-        logging.debug("Done")
+        logger.debug("Done")
         return 0
 
     def start(self):
@@ -135,16 +136,16 @@ class Container(object):
         @return: 0 on success 1 on failure
         """
         if self.container.running:
-            logging.warning("Container '%s' already running. Skipping!")
+            logger.warning("Container '%s' already running. Skipping!")
             return 0
 
-        logging.info("Starting container '%s'", self.name)
+        logger.info("Starting container '%s'", self.name)
         if not self.container.start():
             return 1
 
         # Wait for the container to start
         self.container.wait('RUNNING', const.START_TIMEOUT)
-        logging.info("Container '%s' started", self.name)
+        logger.info("Container '%s' started", self.name)
         return 0 if self.container.running else 1
 
     def stop(self):
@@ -158,15 +159,15 @@ class Container(object):
             - Do not stop if already stopped
         """
         if not self.container.running:
-            logging.warning("Container '%s' already stopped. Skipping!")
+            logger.warning("Container '%s' already stopped. Skipping!")
             return 0
 
-        logging.info("Stopping container '%s'", self.name)
+        logger.info("Stopping container '%s'", self.name)
         if not self.container.stop():
             return 1
 
         # Wait for the container to stop
         self.container.wait('STOPPED', const.STOP_TIMEOUT)
-        logging.info("Container '%s' stopped", self.name)
+        logger.info("Container '%s' stopped", self.name)
         return 0 if not self.container.running else 1
 

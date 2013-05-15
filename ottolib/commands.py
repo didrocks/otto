@@ -21,6 +21,7 @@ Commands class - part of the project otto
 
 import argparse
 import logging
+logger = logging.getLogger(__name__)
 import subprocess
 import sys
 from textwrap import dedent
@@ -101,7 +102,12 @@ class Commands(object):
             sys.exit(0)
         else:
             self.run = self.args.func
-            self.container = container.Container(self.args.name)
+            try:
+                self.container = container.Container(self.args.name)
+            except Exception as e:
+                logger.error("Error when trying to initiate the container: "
+                    "{}".format(e))
+                sys.exit(1)
 
     def cmd_create(self):
         """ Creates a new container """
@@ -120,10 +126,10 @@ class Commands(object):
         if not self.args.force_disconnect:
             try:
                 subprocess.check_call(["pidof", "gnome-session"])
-                logging.warning("gnome-session is running. This likely means "
-                                "that a user is logged in and will be "
-                                "forcibly disconnected. Please logout before "
-                                "starting the container or use option -D")
+                logger.warning("gnome-session is running. This likely means "
+                               "that a user is logged in and will be "
+                               "forcibly disconnected. Please logout before "
+                               "starting the container or use option -D")
                 return 1
             except subprocess.CalledProcessError:
                 pass
@@ -131,8 +137,8 @@ class Commands(object):
         srv = "lightdm"
         ret = utils.service_stop(srv)
         if ret > 2:  # Not enough privileges or Unknown error: Abort
-            logging.error("An error occurred while stopping service '{}'. "
-                          "Aborting!".format(srv))
+            logger.error("An error occurred while stopping service '{}'. "
+                         "Aborting!".format(srv))
             return ret
         else:
             # An image has been passed on the cmdline, dump the squashfs to
@@ -157,16 +163,16 @@ class Commands(object):
         # time_elapsed_since_start_of_the_session
         self.container.wait('STOPPED', const.TEST_TIMEOUT)
         if self.container.running:
-            logging.error("Test didn't stop within %d seconds",
-                          const.TEST_TIMEOUT)
+            logger.error("Test didn't stop within %d seconds",
+                         const.TEST_TIMEOUT)
             self.container.stop()  # Or kill
             return 1
         return 0
 
     def cmd_stop(self):
         """ Stops a container """
-        logging.info("Stopping container '{}'".format(self.args.name))
-        logging.info("Container '{}' stopped".format(self.args.name))
+        logger.info("Stopping container '{}'".format(self.args.name))
+        logger.info("Container '{}' stopped".format(self.args.name))
         # TODO:
         #   - Wait for stop
         return self.container.stop()
