@@ -147,6 +147,7 @@ class Container(object):
 
         logger.info("Starting container '%s'", self.name)
         if not self.container.start():
+            logging.error("Can't start lxc container")
             return 1
 
         # Wait for the container to start
