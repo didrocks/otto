@@ -187,9 +187,9 @@ test_setup() {
     fi
 
     # rsync packages directory to rootfs
-    mkdir -p $rootfs/var/lib/lxc/otto/
+    mkdir -p $rootfs/var/lib/otto/
     if [ -d "$CUSTOM_INSTALLATION_DIR/packages" ]; then
-        rsync -avH $CUSTOM_INSTALLATION_DIR/packages/ $rootfs/var/lib/lxc/otto/
+        rsync -avH $CUSTOM_INSTALLATION_DIR/packages/ $rootfs/var/lib/otto/
     fi
 
 }
@@ -197,7 +197,6 @@ test_setup() {
 user_exists() {
     # Checks if a user exists
     # $1: Username
-
     if ! chroot $rootfs getent passwd "$1" 2>/dev/null>/dev/null; then
         return 1
     else
