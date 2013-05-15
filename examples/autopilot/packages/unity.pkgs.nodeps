@@ -1,4 +1,3 @@
-# This packages are strictly needed and no other to run autopilot on Unity
 bamfdaemon
 indicator-datetime
 indicator-messages
