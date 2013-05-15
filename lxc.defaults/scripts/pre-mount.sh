@@ -186,6 +186,12 @@ test_setup() {
         rsync -avH $CUSTOM_INSTALLATION_DIR/target-override/ $rootfs/
     fi
 
+    # rsync packages directory to rootfs
+    mkdir -p $rootfs/var/lib/lxc/otto/
+    if [ -d "$CUSTOM_INSTALLATION_DIR/packages" ]; then
+        rsync -avH $CUSTOM_INSTALLATION_DIR/packages/ $rootfs/var/lib/lxc/otto/
+    fi
+
 }
 
 user_exists() {

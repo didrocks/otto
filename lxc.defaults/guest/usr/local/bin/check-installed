@@ -53,5 +53,9 @@ check_install() {
     fi
 }
 
-[ $# -lt 1 ] && usage
+# Do not fail when no argument is provided
+if [ $# -eq 0 ]; then
+    echo "W: No argument provided, exiting!"
+    exit 0
+fi
 check_install $@

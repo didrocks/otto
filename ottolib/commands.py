@@ -25,6 +25,8 @@ logger = logging.getLogger(__name__)
 import os
 import subprocess
 import sys
+import os
+import shutil
 from textwrap import dedent
 
 from . import const, container, utils
@@ -76,6 +78,10 @@ class Commands(object):
                             help="iso or squashfs to use as rootfs. If an "
                             "ISO is used, the squashfs contained in this "
                             "image will be extracted and used as rootfs")
+        pstart.add_argument("-C", "--custom-installation",
+                            default=None,
+                            help="custom-installation directory to use for "
+                            "this run")
         pstart.add_argument('-D', '--force-disconnect', action='store_true',
                             default=False,
                             help="Forcibly shutdown lightdm even if a session "
@@ -141,18 +147,28 @@ class Commands(object):
             logger.error("An error occurred while stopping service '{}'. "
                          "Aborting!".format(srv))
             return ret
-        else:
-            # An image has been passed on the cmdline, dump the squashfs to
-            # cache directory
-            if self.args.image is not None:
-                self.container.squashfs_path = self.container.copy_image(
-                    self.args.image, self.container.squashfs_path)
+
+        # An image has been passed on the cmdline, dump the squashfs to
+        # cache directory
+        if self.args.image is not None:
+            self.container.squashfs_path = self.container.copy_image(
+                self.args.image, self.container.squashfs_path)
+            if self.container.squashfs_path is None:
+                return 1
 
         logger.debug("selected squashfs is: {}".format(self.container.squashfs_path))
         if not os.path.isfile(self.container.squashfs_path):
             logger.error("{} doesn't exist. Please provide an iso or a squashfs "
                          "when starting the container.".format(self.container.squashfs_path))
             return 1
+
+        if self.args.custom_installation is not None:
+            if os.path.isdir(self.args.custom_installation):
+                logging.info("Customizing container from "
+                             "'{}'".format(self.args.custom_installation))
+                shutil.copytree(self.args.custom_installation,
+                                os.path.join(self.container.guestpath,
+                                             'custom-installation'))
 
         if not self.container.start():
             return 1
