@@ -35,9 +35,14 @@ class Container(object):
     def __init__(self, name):
         self.name = name
         self.container = lxc.Container(name)
+        self.wait = self.container.wait
         self.guestpath = os.path.join(const.LXCBASE, name)
         self.lxcdefaults = os.path.join(utils.get_base_dir(), "lxc.defaults")
         self.squashfs = None
+
+    @property
+    def running(self):
+        return self.container.running
 
     def create(self):
         """ Creates a new container
@@ -136,7 +141,7 @@ class Container(object):
 
         @return: 0 on success 1 on failure
         """
-        if self.container.running:
+        if self.running:
             logger.warning("Container '%s' already running. Skipping!")
             return 0
 
@@ -147,7 +152,7 @@ class Container(object):
         # Wait for the container to start
         self.container.wait('RUNNING', const.START_TIMEOUT)
         logger.info("Container '%s' started", self.name)
-        return 0 if self.container.running else 1
+        return 0 if self.running else 1
 
     def stop(self):
         """ Stops a container
@@ -159,7 +164,7 @@ class Container(object):
         TODO:
             - Do not stop if already stopped
         """
-        if not self.container.running:
+        if not self.running:
             logger.warning("Container '%s' already stopped. Skipping!")
             return 0
 
@@ -170,5 +175,5 @@ class Container(object):
         # Wait for the container to stop
         self.container.wait('STOPPED', const.STOP_TIMEOUT)
         logger.info("Container '%s' stopped", self.name)
-        return 0 if not self.container.running else 1
+        return 0 if not self.running else 1
 
