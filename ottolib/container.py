@@ -30,12 +30,13 @@ from . import const, utils
 
 
 class Container(object):
-    """Class that manages LXC"""
+    """ Class that manages LXC """
+
     def __init__(self, name):
-        """Constructor"""
         self.name = name
         self.container = lxc.Container(name)
         self.guestpath = os.path.join(const.LXCBASE, name)
+        self.lxcdefaults = os.path.join(utils.get_base_dir(), "lxc.defaults")
         self.squashfs = None
 
     def create(self):
@@ -80,20 +81,20 @@ class Container(object):
 
         # Copy files used by the container
         # Substitute name of the container in the configuration file.
-        with open(os.path.join(const.LXCDEFAULTS, "config"), 'r') as fin:
+        with open(os.path.join(self.lxcdefaults, "config"), 'r') as fin:
             with open(os.path.join(self.guestpath, "config"), 'w') as fout:
                 for line in fin:
                     fout.write(line.replace("${NAME}", self.name))
 
-        shutil.copy(os.path.join(const.LXCDEFAULTS, "fstab"), self.guestpath)
+        shutil.copy(os.path.join(self.lxcdefaults, "fstab"), self.guestpath)
 
-        src = os.path.join(const.LXCDEFAULTS, "scripts")
+        src = os.path.join(self.lxcdefaults, "scripts")
         dst = os.path.join(self.guestpath, "scripts")
         shutil.copy(os.path.join(src, "pre-mount.sh"), dst)
         utils.set_executable(os.path.join(dst, "pre-mount.sh"))
         shutil.copy(os.path.join(src, "otto.rc"), dst)
 
-        src = os.path.join(const.LXCDEFAULTS, "guest")
+        src = os.path.join(self.lxcdefaults, "guest")
         dst = os.path.join(self.guestpath, "guest")
         shutil.copy(os.path.join(src, "packages.conf"), dst)
         shutil.copy(os.path.join(src, "check-installed"), dst)

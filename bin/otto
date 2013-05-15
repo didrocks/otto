@@ -28,7 +28,7 @@ import sys
 
 OTTOLIB = os.path.abspath(os.path.dirname(sys.path[0]))
 if os.path.isdir(OTTOLIB):
-    sys.path.insert(0, OTTOLIB)
+    sys.path.insert(1, OTTOLIB)
 
 from ottolib.utils import exit_missing_imports
 

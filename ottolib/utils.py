@@ -33,7 +33,7 @@ from time import gmtime, strftime
 
 
 def set_logging(debugmode=False):
-    """Initialize logging"""
+    """ Initialize logging """
     basic_formatting = "%(asctime)s %(levelname)s %(message)s"
     if debugmode:
         basic_formatting = "<%(module)s:%(lineno)d - %(threadName)s> " + basic_formatting
@@ -337,9 +337,23 @@ def compute_md5sum(file):
 
 
 def exit_missing_imports(modulename, package):
-    '''Exit if a required import is missing'''
+    """ Exit if a required import is missing """
     try:
         __import__(modulename)
     except ImportError as e:
         print("{}: you need to install {}".format(e, package))
         sys.exit(1)
+
+
+def get_bin_dir():
+    """ Get otto bin dir path """
+    return sys.path[0]
+
+
+def get_base_dir():
+    """ Get base dir for otto """
+    potential_basedir = os.path.abspath(os.path.dirname(get_bin_dir()))
+    if os.path.isdir(os.path.join(potential_basedir, "ottolib")):
+        return potential_basedir
+    else:
+        return os.path.join("/", "usr", "share", "otto")
