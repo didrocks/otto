@@ -37,12 +37,13 @@ class Otto(object):
     def __init__(self):
         """ Constructor
         """
-        self.cmds = commands.Commands()
-
         # Root privileges required to handle LXC containers
         if os.getuid() != 0:
-            logging.error("This script must be run as root")
+            logging.error("You must have root privileges to run this "
+                          "script.  ")
             sys.exit(1)
+
+        self.cmds = commands.Commands()
 
     def main(self):
         """ Main routine
