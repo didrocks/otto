@@ -57,7 +57,7 @@ class Commands(object):
 
         pstart = subparser.add_parser("start", help="Start a container")
         pstart.add_argument("name", help="name of the container")
-        pstart.add_argument("-f", "--image",
+        pstart.add_argument("-i", "--image",
                             default=None,
                             help="iso or squashfs to use as rootfs. If an "
                             "ISO is used, the squashfs contained in this "
