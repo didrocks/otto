@@ -176,18 +176,11 @@ test_setup() {
     # $1: user
     user=$1
 
-    # TODO
-    # Move this to custom_installation directory
-    [ -f $BASEDIR/packages.conf ] && cp -a $BASEDIR/packages.conf $rootfs/etc/init/
-    #mkdir -p $rootfs/etc/default/tests/
-    cat<<EOF > $rootfs/etc/default/tests/ppas
-ppa:ubuntu-unity/daily-build
-EOF
+    # rsync default files to the container essentially to install new packages
+    if [ -d $BASEDIR/guest/ ]; then
+        rsync -avH $BASEDIR/guest/ $rootfs/
+    fi
 
-    cat<<EOF > $rootfs/etc/default/tests/packages
-unity-autopilot
-python-autopilot
-EOF
     # rsync custom-installation directory to rootfs
     if [ -d "$CUSTOM_INSTALLATION_DIR/target-override" ]; then
         rsync -avH $CUSTOM_INSTALLATION_DIR/target-override/ $rootfs/

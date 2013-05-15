@@ -53,10 +53,9 @@ class Container(object):
         It creates the minimum files required by LXC to be a valid container:
         rootfs/, config and fstab, copies a pre-mount script that is used
         during when the container starts to prepare the container to run from
-        a disk image and share the devices from the host. The script
-        check-installed and the upstart job packages.conf will be copied to the
-        guest FS by the pre-mount script to install additional packages into
-        the container.
+        a disk image and share the devices from the host. The directory guest
+        will be rsynced to the guest FS by the pre-mount script to install
+        additional packages into the container.
 
         @return: 0 on success, 1 otherwise
 
@@ -80,9 +79,6 @@ class Container(object):
         os.makedirs(os.path.join(self.guestpath, "rootfs"))
         # Scripts
         os.makedirs(os.path.join(self.guestpath, "scripts"))
-        # tmp directory for files that will be copied to rootfs by the
-        # pre-mount script
-        os.makedirs(os.path.join(self.guestpath, "guest"))
 
         # Copy files used by the container
         # Substitute name of the container in the configuration file.
@@ -101,9 +97,7 @@ class Container(object):
 
         src = os.path.join(self.lxcdefaults, "guest")
         dst = os.path.join(self.guestpath, "guest")
-        shutil.copy(os.path.join(src, "packages.conf"), dst)
-        shutil.copy(os.path.join(src, "check-installed"), dst)
-        utils.set_executable(os.path.join(dst, "check-installed"))
+        shutil.copytree(src, dst)
 
         logger.debug("Done")
         return 0
