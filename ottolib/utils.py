@@ -77,10 +77,12 @@ def service_is_running(service):
     if service_exists(service) != 0:
         return -1
 
-    cmd = "status %s" % service
-    (ret, msg) = subprocess.getstatusoutput(cmd)
-
-    if ret != 0:
+    cmd = ["status", service]
+    try:
+        msg = subprocess.check_output(cmd)
+    except subprocess.CalledProcessError:
+        # Happens if the service doesn't exist on the system
+        logger.error("'status {}' failed with error:\n{}".format(service, msg))
         return -1
 
     if "start/running" in msg:
@@ -89,11 +91,8 @@ def service_is_running(service):
     elif "stop/waiting" in msg:
         logger.debug("Service '%s' is stopped", service)
         return False
-
-    # Happens if the service doesn't exist on the system
-    logger.error("'status %s' failed with exit status %d:\n%s", service, ret,
-                 msg)
-    return -1
+    else:
+        return -1
 
 
 def service_exists(service):
@@ -103,17 +102,18 @@ def service_exists(service):
 
     @return: 0 if it exists, 1 if not and -1 on error
     """
-    cmd = "status %s" % service
-
-    (ret, msg) = subprocess.getstatusoutput(cmd)
-
-    if ret == 0:
+    cmd = ["status", service]
+    try:
+        msg = subprocess.check_output(cmd)
         return 0
-
-    if ret == 256 and "status: Unknown job:" in msg:
-        return 1
-
-    return -1
+    except subprocess.CalledProcessErrori as cpe:
+        if "status: Unknown job:" in cpe.output:
+            return 1
+        else:
+            # Unknown Error
+            logging.errort(
+                "'{}' failed with error:\n{}".format(cmd, cpe.output))
+            return -1
 
 
 def service_start_stop(service, start):
@@ -146,12 +146,14 @@ def service_start_stop(service, start):
     if status == (start == "start"):
         logger.info("Service '%s' already in state '%s'", service, start)
     else:
-        cmd = "%s %s" % (start.lower(), service.lower())
+        cmd = [start.lower(), service.lower()]
         logger.debug("Executing: %s", cmd)
-        (ret, msg) = subprocess.getstatusoutput(cmd)
-
-        if ret != 0:
-            logger.error("'%s' failed with status %d:\n%s", cmd, ret, msg)
+        try:
+            msg = subprocess.check_output(cmd)
+        except subprocess.CalledProcessErrori as cpe:
+            logger.error(
+                "'{}' failed with status %d:\n{}".format(
+                    cmd, cpe.returncode, cpe.output))
             return 1
 
     return 0
@@ -174,15 +176,20 @@ def get_image_type(path):
         logger.warning("File '%s' does not exist!", path)
         return "error"
 
-    (ret, msg) = subprocess.getstatusoutput("file -b %s" % path)
-    if ret != 0:
+    cmd = ["file", "-b", path]
+
+    try:
+        msg = subprocess.check_output(cmd)
+    except subprocess.CalledProcessErrori as cpe:
+        logger.error("'{}' failed with status %d:\n{}".format(
+            cmd, cpe.returncode, cpe.output))
         return "error"
-    else:
-        for sig, imgtype in imgtypes.items():
-            if msg.lower().startswith(sig.lower()):
-                logger.debug("Found type '%s' for file '%s'", imgtype, path)
-                return imgtype
-        return "unknown"
+
+    for sig, imgtype in imgtypes.items():
+        if msg.lower().startswith(sig.lower()):
+            logger.debug("Found type '%s' for file '%s'", imgtype, path)
+            return imgtype
+    return "unknown"
 
 
 def copy_image(image, destpath):
