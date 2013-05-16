@@ -199,7 +199,7 @@ class Container(object):
 
         logger.info("Customizing container from '{}'".format(path))
         if not os.path.isdir(path):
-            logger.info("You provided a wrong custom installation path. Exiting!")
+            logger.warning("You provided a wrong custom installation path. Exiting!")
             return False
 
         for dir in self.custom_install_dirs_list:
@@ -207,6 +207,7 @@ class Container(object):
                 shutil.rmtree(os.path.join(self.rundir, dir))
             shutil.copytree(os.path.join(path, dir),
                             os.path.join(self.rundir, dir))
+        return True
 
     def remove_custom_installation(self):
         """Delete custom installation content from latest run"""
