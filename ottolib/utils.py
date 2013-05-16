@@ -86,10 +86,10 @@ def service_is_running(service):
         logger.error("'status {}' failed with error:\n{}".format(service, msg))
         return -1
 
-    if "start/running" in msg:
+    if b"start/running" in msg:
         logger.debug("Service '%s' is running", service)
         return True
-    elif "stop/waiting" in msg:
+    elif b"stop/waiting" in msg:
         logger.debug("Service '%s' is stopped", service)
         return False
     else:
@@ -180,7 +180,7 @@ def get_image_type(path):
     cmd = ["file", "-b", path]
 
     try:
-        msg = subprocess.check_output(cmd)
+        msg = subprocess.check_output(cmd, universal_newlines=True)
     except subprocess.CalledProcessError as cpe:
         logger.error("'{}' failed with status %d:\n{}".format(
             cmd, cpe.returncode, cpe.output))
