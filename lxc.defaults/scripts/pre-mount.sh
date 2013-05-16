@@ -66,7 +66,7 @@ prepare_fs() {
 	mkdir -p $delta_dir
 
     # Mount the squashfs
-	squashfs_dir="$RUNDIR/squashfs"
+    squashfs_dir="$(dirname $LXC_CONFIG_FILE)/squashfs"
 	mkdir -p $squashfs_dir
 	mount -n -o loop,ro $squashfs_path $squashfs_dir
 
