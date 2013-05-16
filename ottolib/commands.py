@@ -173,13 +173,14 @@ class Commands(object):
         if self.args.image is not None:
             imagepath = os.path.realpath(self.args.image)
         else:
-            imagepath = self.container.otto_config.image
-            if not imagepath:
+            try:
+                imagepath = self.container.otto_config.image
+            except AttributeError:
                 logger.error("No image provided on the command line and you didn't "
                              "have any previous run into that container. "
                              "Please specify an image with -i. Exiting!")
                 return 1
-            elif not os.path.exists(imagepath):
+            if not os.path.exists(imagepath):
                 logger.error("No image provided on the command line and '{}' "
                              "doesn't exist. Please specify an image with -i. "
                              "Exiting!".format(imagepath))
