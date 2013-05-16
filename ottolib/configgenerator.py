@@ -37,6 +37,7 @@ class ConfigGenerator(object):
         self._config_file = os.path.join(rundir, "config")
 
         # if exists, load old parameters
+        self._loading_from_file = False
         if os.path.isfile(self._config_file):
             self.__load_parameters_from_file(self._config_file)
 
