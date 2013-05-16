@@ -19,9 +19,8 @@ Various Constants - part of the project otto
 # this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-
 LXCBASE = "/var/lib/lxc"
-DEFAULT_CONFIG_FILE = "otto.rc"
+RUNDIR = "run"
 
 START_TIMEOUT = 60
 STOP_TIMEOUT = 30

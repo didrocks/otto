@@ -25,8 +25,10 @@ import lxc
 import os
 import shutil
 import sys
+import time
 
 from . import const, utils
+from .configgenerator import ConfigGenerator
 from .utils import ignored
 
 
@@ -38,16 +40,13 @@ class Container(object):
         self.container = lxc.Container(name)
         self.wait = self.container.wait
         self.guestpath = os.path.join(const.LXCBASE, name)
-        self.lxcdefaults = os.path.join(utils.get_base_dir(), "lxc.defaults")
-        ####self.otto_config = ConfigGenerator(self.script_src, self.script_dst)
-
-    @property
-    def squashfs_path(self):
-        return self.otto_config.squashfs_path
-
-    @squashfs_path.setter
-    def squashfs_path(self, value):
-        self.otto_config.squashfs_path = value
+        self.rundir = os.path.join(self.guestpath, const.RUNDIR)
+        with ignored(OSError):
+            os.makedirs(self.rundir)
+        self.otto_config = ConfigGenerator(self.rundir)
+        self.custom_install_dirs_list = ("packages", "target-override")
+        # always regenerate a new runid, even if restarting an old run
+        self.otto_config.runid = int(time.time())
 
     @property
     def running(self):
@@ -174,21 +173,52 @@ class Container(object):
 
         # Copy files used by the container
         # Substitute name of the container in the configuration file.
-        with open(os.path.join(self.lxcdefaults, "config"), 'r') as fin:
+        lxcdefaults = os.path.join(utils.get_base_dir(), "lxc.defaults")
+        with open(os.path.join(lxcdefaults, "config"), 'r') as fin:
             with open(os.path.join(self.guestpath, "config"), 'w') as fout:
                 for line in fin:
                     fout.write(line.replace("${NAME}", self.name))
 
-        shutil.copy(os.path.join(self.lxcdefaults, "fstab"), self.guestpath)
+        shutil.copy(os.path.join(lxcdefaults, "fstab"), self.guestpath)
 
-        src = os.path.join(self.lxcdefaults, "scripts")
+        src = os.path.join(lxcdefaults, "scripts")
         dst = os.path.join(self.guestpath, "scripts")
         shutil.copy(os.path.join(src, "pre-mount.sh"), dst)
         utils.set_executable(os.path.join(dst, "pre-mount.sh"))
-        shutil.copy(os.path.join(src, const.DEFAULT_CONFIG_FILE), dst)
 
-        src = os.path.join(self.lxcdefaults, "guest")
+        src = os.path.join(lxcdefaults, "guest")
         dst = os.path.join(self.guestpath, "guest")
         with ignored(OSError):
             shutil.rmtree(dst)
         shutil.copytree(src, dst)
+
+    def install_custom_installation(self, path):
+        """Install a new custom installation, removing previous one if present.
+
+        Return False if any error"""
+
+        logger.info("Customizing container from '{}'".format(path))
+        if not os.path.isdir(path):
+            logger.info("You provided a wrong custom installation path. Exiting!")
+            return False
+
+        for dir in self.custom_install_dirs_list:
+            with ignored(OSError):
+                shutil.rmtree(os.path.join(self.rundir, dir))
+            shutil.copytree(os.path.join(path, dir),
+                            os.path.join(self.rundir, dir))
+
+    def remove_custom_installation(self):
+        """Delete custom installation content from latest run"""
+
+        logger.info("Removing old customization")
+        for dir in self.custom_install_dirs_list:
+            with ignored(OSError):
+                shutil.rmtree(os.path.join(self.rundir, dir))
+
+    def remove_delta(self):
+        """Delete delta content from latest run"""
+
+        logger.info("Removing old delta")
+        with ignored(OSError):
+            shutil.rmtree(os.path.join(self.rundir, "delta"))

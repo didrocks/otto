@@ -22,56 +22,58 @@ config_generate - part of the project otto
 import logging
 logger = logging.getLogger(__name__)
 import os
+
 from . import const
+from .utils import ignored
 
 
 class ConfigGenerator(object):
-    """ Class that manages LXC dynamic configuration.
+    """Class that manages LXC dynamic configuration.
 
-    It's generate an otto.rc file that will be sourced by the premount.sh script """
+    We generate a rundir/config file that are going to be used by LXC"""
 
-    def __init__(self, script_src, dest_override_path):
+    def __init__(self, rundir):
 
-        self.overriden_config = {}
-        self.default_config_file = os.path.join(script_src,
-                                                const.DEFAULT_CONFIG_FILE)
-        self.override_config_file = os.path.join(dest_override_path,
-                                                 "{}.override".format(const.DEFAULT_CONFIG_FILE))
-        self.__load_parameters_from_file(self.default_config_file)
-        if os.path.isfile(self.override_config_file):
-            self.__load_parameters_from_file(self.override_config_file)
+        self._config_file = os.path.join(rundir, "config")
 
-    @property
-    def squashfs_path(self):
-        return self._squashfs_path
+        # if exists, load old parameters
+        if os.path.isfile(self._config_file):
+            self.__load_parameters_from_file(self._config_file)
 
-    @squashfs_path.setter
-    def squashfs_path(self, value):
-        logger.debug("override SQUASHFS_PATH to {}".format(self.squashfs_path))
-        self._squashfs_path = value
-        self.overriden_config["SQUASHFS_PATH"] = self.squashfs_path
-        self.__write_overwrite_file()
+    def __setattr__(self, name, value):
+        """Ask to save if the attribute make sense to be saved."""
+        # check that the attribute really changed if it existed
+        with ignored(AttributeError):
+            if getattr(self, name) == value:
+                return
+        object.__setattr__(self, name, value)
+        if not name.startswith("_") and not self._loading_from_file:
+            self.__write()
 
-    def __write_overwrite_file(self):
-        """ Collect all overriden values and generate the override file """
-        logger.debug("Save otto override configuration file")
-        with open(self.override_config_file, 'w') as f:
-            for overriden_value in self.overriden_config:
-                f.write("{}={}".format(overriden_value, self.overriden_config[overriden_value]))
+    def __write(self):
+        """Collect all overriden values and generate the override file"""
+        config = self.get_config()
+        logger.debug("Save otto configuration file with {}".format(config))
+        with open(self._config_file, 'w') as f:
+            for key in config:
+                f.write("{}={}\n".format(key.upper(), config[key]))
 
     def __load_parameters_from_file(self, filepath):
         """ Load and set parameters from file """
-        logger.debug("Reading configuration file for otto premount "
-                     " script {}".format(filepath))
+        logger.debug("Reading configuration file for otto scripts "
+                     "{}".format(filepath))
+        self._loading_from_file = True
         with open(filepath, 'r') as f:
             for line in f:
-                if line.startswith("CACHE_DIR="):
-                    self.cache_dir = line.split("=")[1][:-1]
-                elif line.startswith("SQUASHFS_PATH="):
-                    self._squashfs_path = line.split("=")[1][:-1]
-                    self._squashfs_path = self.squashfs_path.replace("$CACHE_DIR",
-                                                                    self.cache_dir)
-        logger.debug("Values are CACHE_DIR={cache_dir}, "
-                     "SQUASHFS_PATH={squashfs_path}".format(
-                        cache_dir=self.cache_dir,
-                        squashfs_path=self.squashfs_path))
+                results = line.split("=")
+                if len(results) != 2:
+                    continue
+                (key, value) = (results[0].strip().lower(), results[1].strip())
+                setattr(self, key, value)
+        logger.debug("Loaded previous config file. Values are {}.".format(self.get_config()))
+        self._loading_from_file = False
+
+    def get_config(self):
+        """Return a dictionnary with the relevant config content"""
+        all_attr = self.__dict__
+        return {key: all_attr[key] for key in all_attr if not key.startswith("_")}

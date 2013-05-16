@@ -81,6 +81,14 @@ class Commands(object):
                             default=None,
                             help="custom-installation directory to use for "
                             "this run")
+        pstart.add_argument("--new", action='store_true',
+                            default=False,
+                            help="remove latest custom-installation directory for a vanilla "
+                            "ISO run")
+
+        pstart.add_argument("-k", "--keepdelta", action='store_true',
+                            default=False,
+                            help="Keep latest delta to restart in the exact same state")
         pstart.add_argument('-D', '--force-disconnect', action='store_true',
                             default=False,
                             help="Forcibly shutdown lightdm even if a session "
@@ -130,6 +138,12 @@ class Commands(object):
 
         @return: Return code of Container.start() method
         """
+
+        # first, check that the container is not running
+        if self.container.running:
+            logger.warning("Container '{}' already running. Skipping!".format(self.container.name))
+            return 1
+
         # Don't shoot any logged in user
         if not self.args.force_disconnect:
             try:
@@ -149,45 +163,49 @@ class Commands(object):
                          "Aborting!".format(srv))
             return ret
 
-        # An image has been passed on the cmdline, dump the squashfs to
-        # cache directory
-        destlink = os.path.join(self.container.guestpath, "image.iso")
-        if self.args.image is not None:
-            # Create a symlink in the container directory to reuse it if -i is
-            # not passed on next run
-            if os.path.islink(destlink):
-                os.unlink(destlink)
-            os.symlink(self.args.image, destlink)
-        else:
-            if not os.path.exists(destlink):
-                logger.error("No image provided on the command line and '{}' "
-                             "doesn't exist. Please specify an image with -i. "
-                             "Exiting!".format(destlink))
-                return 1
-
-        imagepath = os.path.realpath(destlink)
-        self.container.squashfs_path = utils.get_squashfs(imagepath)
-        if self.container.squashfs_path is None:
-            return 1
-
-        logger.debug("selected squashfs is: {}".format(
-            self.container.squashfs_path))
-        if not os.path.isfile(self.container.squashfs_path):
-            logger.error("{} doesn't exist. Please provide an iso or a "
-                         "squashfs when starting the container.".format(
-                             self.container.squashfs_path))
-            return 1
-
-        if self.args.custom_installation is not None:
-            if os.path.isdir(self.args.custom_installation):
-                logger.info("Customizing container from "
-                            "'{}'".format(self.args.custom_installation))
-                shutil.copytree(self.args.custom_installation,
-                                os.path.join(self.container.guestpath,
-                                             'custom-installation'))
-
         # refresh in the container latest otto code and default config
         self.container.copy_otto_files()
+
+        if self.args.image is not None:
+            imagepath = os.path.realpath(self.args.image)
+        else:
+            imagepath = self.container.otto_config.image
+            if not imagepath:
+                logger.error("No image provided on the command line and you didn't "
+                             "have any previous run into that container. "
+                             "Please specify an image with -i. Exiting!")
+                return 1
+            elif not os.path.exists(imagepath):
+                logger.error("No image provided on the command line and '{}' "
+                             "doesn't exist. Please specify an image with -i. "
+                             "Exiting!".format(imagepath))
+                return 1
+
+        squashfs = utils.get_squashfs(imagepath)
+        if squashfs is None:
+            return 1
+        # TODO: otto_config needs to be a singleton that we retreive
+        self.container.otto_config.squashfs = squashfs
+        self.container.otto_config.image = imagepath
+
+        logger.debug("selected squashfs is: {}".format(
+            self.container.otto_config.squashfs))
+        if not os.path.isfile(self.container.otto_config.squashfs):
+            logger.error("{} doesn't exist. Please provide an iso or a "
+                         "squashfs when starting the container.".format(
+                             self.container.otto_config.squashfs))
+            return 1
+
+        # custom installation handling
+        if self.args.new:
+            self.container.remove_custom_installation()
+        custom_installation = self.args.custom_installation
+        if custom_installation is not None:
+            if not self.container.install_custom_installation(custom_installation):
+                return 1
+
+        if not self.args.keepdelta:
+            self.container.remove_delta()
 
         if not self.container.start():
             return 1

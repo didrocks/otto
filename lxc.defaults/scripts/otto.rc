@@ -1,3 +1,0 @@
-# those default values can be overriden by otto
-CACHE_DIR=/var/cache/otto
-SQUASHFS_PATH=$CACHE_DIR/filesystem.squashfs

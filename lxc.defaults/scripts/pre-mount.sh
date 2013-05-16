@@ -1,4 +1,4 @@
-#!/bin/sh -eu
+#!/bin/sh -eux
 
 #
 # This script prepares an LXC container from an ISO image and setup an overlay
@@ -27,17 +27,19 @@
 # - Add an option to restore from an existing delta
 
 BASEDIR=$(dirname $LXC_CONFIG_FILE)
-CUSTOM_INSTALLATION_DIR=$BASEDIR/custom-installation/
+RUNDIR=$BASEDIR/run
 rootfs=$LXC_ROOTFS_PATH
 RELEASE=$(distro-info --devel)
 ARCH=$(dpkg --print-architecture)
 TESTUSER=ubuntu
 
-OTTORC=$BASEDIR/scripts/otto.rc
-[ -r "$OTTORC" ] && . $OTTORC
-# TODO: Pass config file in argument
-# override default parameters (generated for the run)
-[ -r "$OTTORC.override" ] && . $OTTORC.override
+# source run specific configuration
+CONFIG=$RUNDIR/config
+if [ ! -r "$CONFIG" ]; then
+    echo "E: No configuration found on $CONFIG. It means you never ran otto start."
+    exit 1
+fi
+. $CONFIG
 
 
 prepare_fs() {
@@ -58,13 +60,13 @@ prepare_fs() {
 
     # delta_dir is the overlay and will contain all the files that have been
     # changed in the container
-	delta_dir="$(dirname $LXC_CONFIG_FILE)/delta"
+	delta_dir="$RUNDIR/delta"
     # TODO: Make it an option of the start command of otto
 	#rm -Rf $delta_dir
 	mkdir -p $delta_dir
 
     # Mount the squashfs
-	squashfs_dir="$(dirname $LXC_CONFIG_FILE)/squashfs"
+	squashfs_dir="$RUNDIR/squashfs"
 	mkdir -p $squashfs_dir
 	mount -n -o loop,ro $squashfs_path $squashfs_dir
 
@@ -182,14 +184,14 @@ test_setup() {
     fi
 
     # rsync custom-installation directory to rootfs
-    if [ -d "$CUSTOM_INSTALLATION_DIR/target-override" ]; then
-        rsync -avH $CUSTOM_INSTALLATION_DIR/target-override/ $rootfs/
+    if [ -d "$RUNDIR/target-override" ]; then
+        rsync -avH $RUNDIR/target-override/ $rootfs/
     fi
 
     # rsync packages directory to rootfs
     mkdir -p $rootfs/var/lib/otto/
-    if [ -d "$CUSTOM_INSTALLATION_DIR/packages" ]; then
-        rsync -avH $CUSTOM_INSTALLATION_DIR/packages/ $rootfs/var/lib/otto/
+    if [ -d "$RUNDIR/packages" ]; then
+        rsync -avH $RUNDIR/packages/ $rootfs/var/lib/otto/
     fi
 
 }
@@ -204,7 +206,7 @@ user_exists() {
     fi
 }
 
-prepare_fs $SQUASHFS_PATH
+prepare_fs $SQUASHFS
 prepare_user $TESTUSER
 configure_system $TESTUSER
 test_setup $TESTUSER
