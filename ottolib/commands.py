@@ -186,6 +186,9 @@ class Commands(object):
                                 os.path.join(self.container.guestpath,
                                              'custom-installation'))
 
+        # refresh in the container latest otto code and default config
+        self.container.copy_otto_files()
+
         if not self.container.start():
             return 1
 

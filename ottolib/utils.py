@@ -19,13 +19,14 @@ Utilities - part of the project otto
 # this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+import atexit
+from contextlib import contextmanager
 import logging
 logger = logging.getLogger(__name__)
 import os
 import stat
 import subprocess
 import sys
-import atexit
 
 
 def set_logging(debugmode=False):
@@ -255,3 +256,12 @@ def get_base_dir():
         return potential_basedir
     else:
         return os.path.join("/", "usr", "share", "otto")
+
+
+# this is stole from python 3.4 :)
+@contextmanager
+def ignored(*exceptions):
+    try:
+        yield
+    except exceptions:
+        pass

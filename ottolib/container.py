@@ -27,7 +27,7 @@ import shutil
 import sys
 
 from . import const, utils
-from .configgenerator import ConfigGenerator
+from .utils import ignored
 
 
 class Container(object):
@@ -39,9 +39,7 @@ class Container(object):
         self.wait = self.container.wait
         self.guestpath = os.path.join(const.LXCBASE, name)
         self.lxcdefaults = os.path.join(utils.get_base_dir(), "lxc.defaults")
-        self.script_src = os.path.join(self.lxcdefaults, "scripts")
-        self.script_dst = os.path.join(self.guestpath, "scripts")
-        self.otto_config = ConfigGenerator(self.script_src, self.script_dst)
+        ####self.otto_config = ConfigGenerator(self.script_src, self.script_dst)
 
     @property
     def squashfs_path(self):
@@ -90,25 +88,8 @@ class Container(object):
         os.makedirs(os.path.join(self.guestpath, "rootfs"))
         # Scripts
         os.makedirs(os.path.join(self.guestpath, "scripts"))
-
-        # Copy files used by the container
-        # Substitute name of the container in the configuration file.
-        with open(os.path.join(self.lxcdefaults, "config"), 'r') as fin:
-            with open(os.path.join(self.guestpath, "config"), 'w') as fout:
-                for line in fin:
-                    fout.write(line.replace("${NAME}", self.name))
-
-        shutil.copy(os.path.join(self.lxcdefaults, "fstab"), self.guestpath)
-
-        shutil.copy(os.path.join(self.script_src, "pre-mount.sh"),
-                    self.script_dst)
-        utils.set_executable(os.path.join(self.script_dst, "pre-mount.sh"))
-        shutil.copy(os.path.join(self.script_src, const.DEFAULT_CONFIG_FILE),
-                    self.script_dst)
-
-        src = os.path.join(self.lxcdefaults, "guest")
-        dst = os.path.join(self.guestpath, "guest")
-        shutil.copytree(src, dst)
+        # tools and default config from otto
+        self.copy_otto_files()
 
         logger.debug("Done")
         return 0
@@ -141,23 +122,26 @@ class Container(object):
     def start(self):
         """ Starts a container.
 
-        This method starts a container and wait for START_TIMEOUT before
+        This method refresh with starts a container and wait for START_TIMEOUT before
         aborting.
 
         @return: 0 on success 1 on failure
         """
         if self.running:
-            logger.warning("Container '%s' already running. Skipping!")
+            logger.warning("Container '{}' already running. Skipping!".format(self.name))
             return 0
 
-        logger.info("Starting container '%s'", self.name)
+        # tools and default config from otto
+        self.copy_otto_files()
+
+        logger.info("Starting container '{}'".format(self.name))
         if not self.container.start():
             logging.error("Can't start lxc container")
             return 1
 
         # Wait for the container to start
         self.container.wait('RUNNING', const.START_TIMEOUT)
-        logger.info("Container '%s' started", self.name)
+        logger.info("Container '{}' started".format(self.name))
         return 0 if self.running else 1
 
     def stop(self):
@@ -171,14 +155,40 @@ class Container(object):
             - Do not stop if already stopped
         """
         if not self.running:
-            logger.warning("Container '%s' already stopped. Skipping!")
+            logger.warning("Container '{}' already stopped. Skipping!".format(self.name))
             return 0
 
-        logger.info("Stopping container '%s'", self.name)
+        logger.info("Stopping container '{}'".format(self.name))
         if not self.container.stop():
             return 1
 
         # Wait for the container to stop
         self.container.wait('STOPPED', const.STOP_TIMEOUT)
-        logger.info("Container '%s' stopped", self.name)
+        logger.info("Container '{}' stopped".format(self.name))
         return 0 if not self.running else 1
+
+    def copy_otto_files(self):
+        """Copy otto files from trunk to container
+
+        This enables to refresh with the latest files from the tree"""
+
+        # Copy files used by the container
+        # Substitute name of the container in the configuration file.
+        with open(os.path.join(self.lxcdefaults, "config"), 'r') as fin:
+            with open(os.path.join(self.guestpath, "config"), 'w') as fout:
+                for line in fin:
+                    fout.write(line.replace("${NAME}", self.name))
+
+        shutil.copy(os.path.join(self.lxcdefaults, "fstab"), self.guestpath)
+
+        src = os.path.join(self.lxcdefaults, "scripts")
+        dst = os.path.join(self.guestpath, "scripts")
+        shutil.copy(os.path.join(src, "pre-mount.sh"), dst)
+        utils.set_executable(os.path.join(dst, "pre-mount.sh"))
+        shutil.copy(os.path.join(src, const.DEFAULT_CONFIG_FILE), dst)
+
+        src = os.path.join(self.lxcdefaults, "guest")
+        dst = os.path.join(self.guestpath, "guest")
+        with ignored(OSError):
+            shutil.rmtree(dst)
+        shutil.copytree(src, dst)
