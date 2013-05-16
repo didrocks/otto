@@ -117,17 +117,17 @@ class Commands(object):
                 parser.print_help()
             sys.exit(0)
         else:
-            if hasattr(self, "func"):
+            try:
                 self.run = self.args.func
-                try:
-                    self.container = container.Container(self.args.name)
-                except Exception as exc:
-                    logger.error("Error when trying to initiate the container: "
-                                 "{}".format(exc))
-                    sys.exit(1)
-            else:
+            except:
                 self.run = None
                 parser.print_help()
+            try:
+                self.container = container.Container(self.args.name)
+            except Exception as exc:
+                logger.error("Error when trying to initiate the container: "
+                             "{}".format(exc))
+                sys.exit(1)
 
     def cmd_create(self):
         """ Creates a new container """
