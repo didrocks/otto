@@ -123,9 +123,10 @@ class Commands(object):
                 self.run = None
                 parser.print_help()
             try:
-                self.container = container.Container(self.args.name)
+                self.container = container.Container(self.args.name,
+                                                     create=self.args.cmd_name=="create")
             except Exception as exc:
-                logger.error("Error when trying to initiate the container: "
+                logger.error("Error when trying to use the container: "
                              "{}".format(exc))
                 sys.exit(1)
 

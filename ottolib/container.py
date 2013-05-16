@@ -35,14 +35,23 @@ from .utils import ignored
 class Container(object):
     """ Class that manages LXC """
 
-    def __init__(self, name):
+    def __init__(self, name, create=False):
         self.name = name
         self.container = lxc.Container(name)
         self.wait = self.container.wait
         self.guestpath = os.path.join(const.LXCBASE, name)
+        # Create root tree
+        if create:
+            if os.path.exists(self.guestpath):
+                raise Exception("Container already exists. Exiting!")
+        else:
+            if not os.path.isdir(self.guestpath):
+                raise Exception("Container {} does not exist.".format(name))
+
         self.rundir = os.path.join(self.guestpath, const.RUNDIR)
         with ignored(OSError):
             os.makedirs(self.rundir)
+
         self.otto_config = ConfigGenerator(self.rundir)
         self.custom_install_dirs_list = ("packages", "target-override")
         # always regenerate a new runid, even if restarting an old run
@@ -77,11 +86,6 @@ class Container(object):
               different things
         """
         logger.info("Creating container '%s'", self.name)
-
-        # Create root tree
-        if os.path.exists(self.guestpath):
-            logger.error("Container already exists. Exiting!")
-            sys.exit(1)
 
         # Base rootfs
         os.makedirs(os.path.join(self.guestpath, "rootfs"))
