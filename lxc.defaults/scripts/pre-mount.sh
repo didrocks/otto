@@ -60,31 +60,31 @@ prepare_fs() {
 
     # delta_dir is the overlay and will contain all the files that have been
     # changed in the container
-	delta_dir="$RUNDIR/delta"
+    delta_dir="$RUNDIR/delta"
     # TODO: Make it an option of the start command of otto
-	#rm -Rf $delta_dir
-	mkdir -p $delta_dir
+    #rm -Rf $delta_dir
+    mkdir -p $delta_dir
 
     # Mount the squashfs
     squashfs_dir="$(dirname $LXC_CONFIG_FILE)/squashfs"
-	mkdir -p $squashfs_dir
-	mount -n -o loop,ro $squashfs_path $squashfs_dir
+    mkdir -p $squashfs_dir
+    mount -n -o loop,ro $squashfs_path $squashfs_dir
 
     # FIXME: Overlayfs leaks loop devices
-	#mount -n -t overlayfs -o upperdir=$delta_dir,lowerdir=$SQUASHFS_DIR overlayfs $LXC_ROOTFS_PATH
-	mount -n -t aufs -o br=$delta_dir=rw:$squashfs_dir=ro aufs $LXC_ROOTFS_PATH
-	umount -l $squashfs_dir
+    #mount -n -t overlayfs -o upperdir=$delta_dir,lowerdir=$SQUASHFS_DIR overlayfs $LXC_ROOTFS_PATH
+    mount -n -t aufs -o br=$delta_dir=rw:$squashfs_dir=ro aufs $LXC_ROOTFS_PATH
+    umount -l $squashfs_dir
 
-	# Create hardware devices
-	mkdir -p $LXC_ROOTFS_PATH/dev/dri $LXC_ROOTFS_PATH/dev/snd $LXC_ROOTFS_PATH/dev/input
-	mkdir -p $LXC_ROOTFS_PATH/var/lxc/udev
+    # Create hardware devices
+    mkdir -p $LXC_ROOTFS_PATH/dev/dri $LXC_ROOTFS_PATH/dev/snd $LXC_ROOTFS_PATH/dev/input
+    mkdir -p $LXC_ROOTFS_PATH/var/lxc/udev
 }
 
 prepare_user() {
     # Creates the user in the container and set its privileges
     # $1: Username
     username="$1"
-	chroot $rootfs useradd --create-home -s /bin/bash $username || true
+    chroot $rootfs useradd --create-home -s /bin/bash $username || true
     if ! user_exists $username; then
         echo "E: Creation of user '$username' failed. Exiting!"
         exit 1
@@ -93,9 +93,9 @@ prepare_user() {
 
     # Adds the user to the 'video' group as ACLs will not work in the
     # container on bind-mounted devices
-	chroot $rootfs adduser $username video || true
-	echo "$username:$username" | chroot $rootfs chpasswd || true
-	echo "$username ALL=(ALL) NOPASSWD:ALL" > $rootfs/etc/sudoers.d/$username
+    chroot $rootfs adduser $username video || true
+    echo "$username:$username" | chroot $rootfs chpasswd || true
+    echo "$username ALL=(ALL) NOPASSWD:ALL" > $rootfs/etc/sudoers.d/$username
 }
 
 configure_system() {
@@ -114,9 +114,9 @@ configure_system() {
     fi
 
     # Sets hostname
-	hostname=$LXC_NAME
-	echo "$hostname" > $rootfs/etc/hostname
-	cat <<EOF > $rootfs/etc/hosts
+    hostname=$LXC_NAME
+    echo "$hostname" > $rootfs/etc/hostname
+    cat <<EOF > $rootfs/etc/hosts
 127.0.0.1   localhost
 127.0.1.1   $hostname
 
@@ -129,19 +129,19 @@ ff02::2 ip6-allrouters
 EOF
 
     # Adds custom sources list as universe is not enabled on image by default
-	cat <<EOF > $rootfs/etc/apt/sources.list
+    cat <<EOF > $rootfs/etc/apt/sources.list
 deb http://archive.ubuntu.com/ubuntu $RELEASE main restricted universe multiverse
 deb http://archive.ubuntu.com/ubuntu $RELEASE-updates main restricted universe multiverse
 deb http://archive.ubuntu.com/ubuntu $RELEASE-security main restricted universe multiverse
 EOF
 
     # Setup a decent locale
-	chroot $rootfs locale-gen en_US.UTF-8
-	chroot $rootfs update-locale LANG=en_US.UTF-8
+    chroot $rootfs locale-gen en_US.UTF-8
+    chroot $rootfs update-locale LANG=en_US.UTF-8
 
     # Creates an upstart job that copies the content of the host /run/udev to
     # the container /run/udev
-	cat <<EOF > $rootfs/etc/init/lxc-udev.conf
+    cat <<EOF > $rootfs/etc/init/lxc-udev.conf
 start on starting udev and started mounted-run
 script
     cp -Ra /var/lxc/udev /run/udev || true
@@ -158,7 +158,7 @@ iface eth0 inet dhcp
 EOF
     fi
 
-	echo "manual" > $rootfs/etc/init/network-manager.override
+    echo "manual" > $rootfs/etc/init/network-manager.override
 
     # Disable Whoopsie
     # Apport doesn't work in LXC containers because it does not have access to
@@ -210,4 +210,3 @@ prepare_fs $SQUASHFS
 prepare_user $TESTUSER
 configure_system $TESTUSER
 test_setup $TESTUSER
-
