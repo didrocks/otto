@@ -40,6 +40,7 @@ class Container(object):
         self.container = lxc.Container(name)
         self.wait = self.container.wait
         self.guestpath = os.path.join(const.LXCBASE, name)
+
         # Create root tree
         if create:
             if os.path.exists(self.guestpath):
@@ -47,15 +48,15 @@ class Container(object):
         else:
             if not os.path.isdir(self.guestpath):
                 raise Exception("Container {} does not exist.".format(name))
+            #TODO: this is only needed when starting a container, not otherwise, clean and move it
+            self.rundir = os.path.join(self.guestpath, const.RUNDIR)
+            with ignored(OSError):
+                os.makedirs(self.rundir)
+            self.otto_config = ConfigGenerator(self.rundir)
+            # always regenerate a new runid, even if restarting an old run
+            self.otto_config.runid = int(time.time())
 
-        self.rundir = os.path.join(self.guestpath, const.RUNDIR)
-        with ignored(OSError):
-            os.makedirs(self.rundir)
-
-        self.otto_config = ConfigGenerator(self.rundir)
         self.custom_install_dirs_list = ("packages", "target-override")
-        # always regenerate a new runid, even if restarting an old run
-        self.otto_config.runid = int(time.time())
 
     @property
     def running(self):
