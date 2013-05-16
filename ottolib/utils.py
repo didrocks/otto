@@ -19,17 +19,13 @@ Utilities - part of the project otto
 # this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-from glob import glob
-import hashlib
 import logging
 logger = logging.getLogger(__name__)
 import os
-import shutil
 import stat
 import subprocess
 import sys
-from tempfile import TemporaryDirectory
-from time import gmtime, strftime
+import atexit
 
 
 def set_logging(debugmode=False):
@@ -193,152 +189,49 @@ def get_image_type(path):
     return "unknown"
 
 
-def copy_image(image, destpath):
-    """ Copy a squashfs to destpath
+def get_squashfs(image):
+    """Get path to squashfs
 
-    If the image passed in argument is an ISO, the squashfs is extracted to
-    destdir. The version of the image is extracted from the squashfs to
-    clearly identify it (release, arch) The buildid is also extracted if the
-    file media-info is found on the image.
+    If image is a squashfs already, it is returned as-is. If image is an
+    iso9660 file system, it gets loop-mounted and the path to the contained
+    /casper/filesystem.squashfs is returned.
 
-    @image: path to an image
-    @destpath: destination path, including filename
-               (it will be a symlink within the same directory)
-
-    @return: Path to squashfs file in cache
+    @image: path to a squashfs or iso9660 image
+    @return: path to squashfs image
     """
-    logger.info("Updating cached squashfs from '%s'", image)
     image_type = get_image_type(image)
+    if image_type == "squashfs":
+        logger.info("image '%s' is a squashfs, using as-is", image)
+        return image
 
-    squashfs_src = None
-    squashfs_dst = None
-    md5sum = None
-
-    destdir = os.path.abspath(os.path.dirname(destpath))
-
-    with TemporaryDirectory(prefix="otto.") as tmpdir:
-        if image_type == "iso9660":
-            # Extract md5sum.txt from ISO and loads checksums
-            md5sum_path = extract_file_from_iso("md5sum.txt", image, tmpdir)
-            md5sums = {}
-            with open(md5sum_path) as fmd5:
-                for line in fmd5:
-                    (digest, filename) = line.strip().split(maxsplit=1)
-                    md5sums[filename] = digest
-
-            # The squashfs is extracted from the ISO only if it doesn't
-            # already exists in the cache directory. We ensure that it is
-            # unique by naming the cached file with the md5sum of the
-            # squashfs. Since the ISO is read-only, it is always
-            # the same for a given build.
-            md5sum = md5sums["./casper/filesystem.squashfs"]
-            cached_files = glob(os.path.join(destdir, "*-%s.squashfs" %
-                                             md5sum))
-            if len(cached_files) == 0:
-                squashfs_src = extract_file_from_iso(
-                    "casper/filesystem.squashfs", image, tmpdir)
-                squashfs_md5 = compute_md5sum(squashfs_src)
-                if squashfs_md5 != md5sum:
-                    logger.error("Checksum of '%s' validation failed. "
-                                 "Expected '%s', got '%s'. Aborting!")
-                    return None
-            else:
-                squashfs_src = cached_files[0]
-
-        # Process a squashfs file.
-        # squashfs_src has been set after the extraction from the ISO if an
-        # ISO was passed as argument or it is the image name if the type of
-        # the image is 'squashfs'
-        if image_type == "squashfs" or squashfs_src is not None:
-            # Copy squashfs to cache directory
-            if squashfs_src is None:
-                squashfs_src = image
-            if md5sum is None:
-                md5sum = compute_md5sum(squashfs_src)
-
-            cached_files = glob(os.path.join(
-                destdir, "*-%s.squashfs" % md5sum))
-            if len(cached_files) > 0:  # Should be 1 really
-                logger.debug("File '%s' already in cache", cached_files[0])
-                squashfs_dst = cached_files[0]
-            else:
-                # Extract metadata from the squashfs
-                sqfs_root = extract_file_from_squashfs(
-                    "squashfs-root", squashfs_src,
-                    os.path.join(tmpdir, "squashfs-root"))
-                # squashfs-root is the root directory and unsquashfs is called
-                # with -d which will extract it to dest without squashfs-root
-                # leading extract_file_from_squashfs to a name like
-                # $tmpdir/squashfs-root/squashfs-root but only
-                # $tmpdir/squashfs-root/ exists, so the last part must be
-                # stripped as it doesn't exists
-                sqfs_root = sqfs_root.rsplit('/', 1)[0]
-                sqfs_root_ts = strftime("%Y%m%d_%H",
-                                        gmtime(os.path.getmtime(sqfs_root)))
-
-                # Copy it to destination directory
-                squashfs_dst = "filesystem-%s-%s.squashfs" % (
-                    sqfs_root_ts, md5sum)
-                if not os.path.exists(destdir):
-                    os.makedirs(destdir)
-                shutil.copy2(squashfs_src, os.path.join(destdir, squashfs_dst))
-
-            # Recreate symlink to this file
-            destlink = os.path.join(destdir, "filesystem.squashfs")
-            logger.debug("Updating symlink '%s'", destlink)
-            if os.path.islink(destlink):
-                os.unlink(destlink)
-            os.symlink(squashfs_dst, destlink)
-
-    return squashfs_dst
-
-
-def extract_file_from_iso(filename, iso, dest):
-    """ Extract a file from an ISO
-    """
-    if not shutil.which("bsdtar"):
-        logger.error("bsdtar not found in path. It is needed to extract iso "
-                     "files")
-    cmd = ["bsdtar", "xf", iso, "-C", dest, filename]
-    try:
-        logger.debug("Extracting %s from %s to %s", filename, iso, dest)
-        subprocess.check_call(cmd)
-        out = os.path.join(dest, filename)
-        return out
-    except subprocess.CalledProcessError:
+    if image_type != "iso9660":
+        logger.error("image '%s' is not a squashfs or iso9660", image)
         return None
 
+    # mount the ISO, unless it is already
+    iso_mount = "/run/otto/iso/" + image.replace("/", "_")
+    if subprocess.call(["mountpoint", "-q", iso_mount]) != 0:
+        logger.debug("%s not mounted yet, creating and mounting", iso_mount)
+        try:
+            os.makedirs(iso_mount)
+        except OSError:
+            pass
+        try:
+            subprocess.check_call(["mount", "-n", "-o", "loop", image, iso_mount])
+        except subprocess.CalledProcessError as cpe:
+            logger.error(
+                "mounting iso failed with status %d:\n{}".format(
+                    cpe.returncode, cpe.output))
+        # clean up the mount on program exit (lazily, as the container will
+        # still access it)
+        atexit.register(subprocess.call, ["umount", "-l", iso_mount])
 
-def extract_file_from_squashfs(filename, sqfs, dest):
-    """ Extract a file from an ISO
-    """
-    if not shutil.which("unsquashfs"):
-        logger.error("unsquashfs not found in path. It is needed to extract "
-                     "squashfs files")
-    cmd = ["unsquashfs",  "-f", "-n", "-d", dest, sqfs, filename]
-    try:
-        logger.debug("Extracting %s from %s to %s", filename, sqfs, dest)
-        subprocess.check_call(cmd)
-        out = os.path.join(dest, filename)
-        return out
-    except subprocess.CalledProcessError:
+    squashfs_path = os.path.join(iso_mount, "casper", "filesystem.squashfs")
+    if not os.path.isfile(squashfs_path):
+        logger.error("'%s' does not contain /casper/filesystem.squashfs", image)
         return None
-
-
-def compute_md5sum(filename):
-    """ Validate an MD5 checksum """
-    block_size = 2**20
-    logger.debug("Calculating hash for file '%s'", filename)
-    md5sum = hashlib.md5()
-    with open(filename, "rb") as fhd:
-        while True:
-            data = fhd.read(block_size)
-            if not data:
-                break
-            md5sum.update(data)
-
-    logger.debug("Local File Checksum: '%s'", md5sum.hexdigest())
-    return md5sum.hexdigest()
+    logger.debug("found squashfs on ISO image: %s", squashfs_path)
+    return squashfs_path
 
 
 def exit_missing_imports(modulename, package):
