@@ -151,10 +151,24 @@ class Commands(object):
 
         # An image has been passed on the cmdline, dump the squashfs to
         # cache directory
+        destlink = os.path.join(self.container.guestpath, "image.iso")
         if self.args.image is not None:
-            self.container.squashfs_path = utils.get_squashfs(self.args.image)
-            if self.container.squashfs_path is None:
+            # Create a symlink in the container directory to reuse it if -i is
+            # not passed on next run
+            if os.path.islink(destlink):
+                os.unlink(destlink)
+            os.symlink(self.args.image, destlink)
+        else:
+            if not os.path.exists(destlink):
+                logger.error("No image provided on the command line and '{}' "
+                             "doesn't exist. Please specify an image with -i. "
+                             "Exiting!".format(destlink))
                 return 1
+
+        imagepath = os.path.realpath(destlink)
+        self.container.squashfs_path = utils.get_squashfs(imagepath)
+        if self.container.squashfs_path is None:
+            return 1
 
         logger.debug("selected squashfs is: {}".format(
             self.container.squashfs_path))
