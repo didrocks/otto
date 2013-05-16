@@ -152,7 +152,7 @@ class Commands(object):
         # An image has been passed on the cmdline, dump the squashfs to
         # cache directory
         if self.args.image is not None:
-            self.container.squashfs_path = self.container.copy_image(
+            self.container.squashfs_path = utils.copy_image(
                 self.args.image, self.container.squashfs_path)
             if self.container.squashfs_path is None:
                 return 1
