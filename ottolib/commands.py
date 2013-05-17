@@ -182,6 +182,14 @@ class Commands(object):
                          "Aborting!".format(srv))
             return ret
 
+        # Hack on the host system for people wanting to run lxc-start directly
+        if not os.path.isfile("/etc/apparmor.d/disabfe/usr.bin.lxc-start"):
+            logger.warning("lxc-start is still under apparmor protection. "
+                           "If you intend to run lxc-start directly, it will not work. "
+                           "You should run:\n"
+                           "$ sudo ln -s /etc/apparmor.d/usr.bin.lxc-start /etc/apparmor.d/disable/\n"
+                           "$ sudo /etc/init.d/apparmor reload")
+
         # state saving handling
         if self.args.restore:
             try:
