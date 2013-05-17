@@ -209,13 +209,15 @@ class Commands(object):
                              "Exiting!".format(imagepath))
                 return 1
 
-        # set selected squashfs
-        squashfs = utils.get_squashfs(imagepath)
-        if squashfs is None:
+        # mount and get iso and squashfs path
+        (iso, squashfs) = utils.get_iso_and_squashfs(imagepath)
+        if iso is None or squashfs is None:
             return 1
+        container_config.iso = iso
         container_config.squashfs = squashfs
         container_config.image = imagepath
-        logger.debug("selected squashfs is: {}".format(container_config.squashfs))
+        logger.debug("selected iso is {}, and squashfs is: {}".format(container_config.iso,
+                                                                      container_config.squashfs))
 
         # custom installation handling
         if self.args.new:

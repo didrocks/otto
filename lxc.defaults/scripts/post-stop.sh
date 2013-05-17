@@ -47,7 +47,7 @@ unmount_fs() {
 
     umount.aufs $LXC_ROOTFS_PATH || true
     umount $squashfs_dir || true
-    umount $iso_mount || true
+    umount $ISOMOUNT || true
 }
 
 

@@ -190,35 +190,41 @@ def get_image_type(path):
     return "unknown"
 
 
-def get_squashfs(image):
+def get_iso_and_squashfs(image):
     """Get path to squashfs
 
-    If image is a squashfs already, it is returned as-is. If image is an
-    iso9660 file system, it gets loop-mounted and the path to the contained
-    /casper/filesystem.squashfs is returned.
+    Image should be an iso9660 file system, it gets loop-mounted and
+    a tuple countaining (iso_path, squash_fs) path is returned
 
     @image: path to a squashfs or iso9660 image
-    @return: path to squashfs image
+    @return: (iso_path, squash_path)
     """
-    image_type = get_image_type(image)
-    if image_type == "squashfs":
-        logger.info("image '%s' is a squashfs, using as-is", image)
-        return image
 
-    if image_type != "iso9660":
-        logger.error("image '%s' is not a squashfs or iso9660", image)
+    if get_image_type(image) != "iso9660":
+        logger.error("image '%s' is not an iso9660", image)
         return None
 
     # mount the ISO, unless it is already
     iso_mount = "/run/otto/iso/" + image.replace("/", "_")
     squashfs_path = os.path.join(iso_mount, "casper", "filesystem.squashfs")
+    if subprocess.call(["mountpoint", "-q", iso_mount]) != 0:
+        logger.debug("%s not mounted yet, creating and mounting", iso_mount)
+        try:
+            os.makedirs(iso_mount)
+        except OSError:
+            pass
+        try:
+            subprocess.check_call(["mount", "-n", "-o", "loop", image, iso_mount])
+        except subprocess.CalledProcessError as cpe:
+            logger.error(
+                "mounting iso failed with status %d:\n{}".format(
+                    cpe.returncode, cpe.output))
 
-# TODO: Replace this by just checking the ISO passed in argument is valid
-#    if not os.path.isfile(squashfs_path):
-#        logger.error("'%s' does not contain /casper/filesystem.squashfs", image)
-#        return None
+    if not os.path.isfile(squashfs_path):
+        logger.error("'%s' does not contain /casper/filesystem.squashfs", image)
+        return (None, None)
     logger.debug("found squashfs on ISO image: %s", squashfs_path)
-    return squashfs_path
+    return (iso_mount, squashfs_path)
 
 
 def exit_missing_imports(modulename, package):
