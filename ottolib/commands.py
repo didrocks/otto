@@ -168,14 +168,13 @@ class Commands(object):
                          "Aborting!".format(srv))
             return ret
 
-        # refresh in the container latest otto code and default config
-        self.container.copy_otto_files()
+        container_config = self.container.config
 
         if self.args.image is not None:
             imagepath = os.path.realpath(self.args.image)
         else:
             try:
-                imagepath = self.container.otto_config.image
+                imagepath = container_config.image
             except AttributeError:
                 logger.error("No image provided on the command line and you didn't "
                              "have any previous run into that container. "
@@ -190,16 +189,13 @@ class Commands(object):
         squashfs = utils.get_squashfs(imagepath)
         if squashfs is None:
             return 1
-        # TODO: otto_config needs to be a singleton that we retreive
-        self.container.otto_config.squashfs = squashfs
-        self.container.otto_config.image = imagepath
-
-        logger.debug("selected squashfs is: {}".format(
-            self.container.otto_config.squashfs))
-        if not os.path.isfile(self.container.otto_config.squashfs):
+        container_config.squashfs = squashfs
+        container_config.image = imagepath
+        logger.debug("selected squashfs is: {}".format(container_config.squashfs))
+        if not os.path.isfile(container_config.squashfs):
             logger.error("{} doesn't exist. Please provide an iso or a "
                          "squashfs when starting the container.".format(
-                             self.container.otto_config.squashfs))
+                             container_config.squashfs))
             return 1
 
         # custom installation handling
@@ -235,8 +231,6 @@ class Commands(object):
 
     def cmd_stop(self):
         """ Stops a container """
-        logger.info("Stopping container '{}'".format(self.args.name))
-        logger.info("Container '{}' stopped".format(self.args.name))
         # TODO:
         #   - Wait for stop
         return self.container.stop()

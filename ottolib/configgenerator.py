@@ -55,6 +55,9 @@ class ConfigGenerator(object):
         """Collect all overriden values and generate the override file"""
         config = self.get_config()
         logger.debug("Save otto configuration file with {}".format(config))
+        # ensure we have a rundir
+        with ignored(OSError):
+            os.makedirs(os.path.dirname(self._config_file))
         with open(self._config_file, 'w') as f:
             for key in config:
                 f.write("{}={}\n".format(key.upper(), config[key]))
