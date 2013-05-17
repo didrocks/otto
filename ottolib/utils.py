@@ -105,7 +105,7 @@ def service_exists(service):
         subprocess.check_output(cmd)
         return 0
     except subprocess.CalledProcessError as cpe:
-        if "status: Unknown job:" in cpe.output:
+        if b"status: Unknown job:" in cpe.output:
             return 1
         else:
             # Unknown Error
