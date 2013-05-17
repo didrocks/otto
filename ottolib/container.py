@@ -189,8 +189,12 @@ class Container(object):
 
         src = os.path.join(lxcdefaults, "scripts")
         dst = os.path.join(self.guestpath, "scripts")
+        shutil.copy(os.path.join(src, "pre-start.sh"), dst)
+        utils.set_executable(os.path.join(dst, "pre-start.sh"))
         shutil.copy(os.path.join(src, "pre-mount.sh"), dst)
         utils.set_executable(os.path.join(dst, "pre-mount.sh"))
+        shutil.copy(os.path.join(src, "post-stop.sh"), dst)
+        utils.set_executable(os.path.join(dst, "post-stop.sh"))
 
         src = os.path.join(lxcdefaults, "guest")
         dst = os.path.join(self.guestpath, "guest")

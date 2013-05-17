@@ -206,7 +206,6 @@ user_exists() {
     fi
 }
 
-prepare_fs $SQUASHFS
 prepare_user $TESTUSER
 configure_system $TESTUSER
 test_setup $TESTUSER

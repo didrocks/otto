@@ -211,26 +211,12 @@ def get_squashfs(image):
 
     # mount the ISO, unless it is already
     iso_mount = "/run/otto/iso/" + image.replace("/", "_")
-    if subprocess.call(["mountpoint", "-q", iso_mount]) != 0:
-        logger.debug("%s not mounted yet, creating and mounting", iso_mount)
-        try:
-            os.makedirs(iso_mount)
-        except OSError:
-            pass
-        try:
-            subprocess.check_call(["mount", "-n", "-o", "loop", image, iso_mount])
-        except subprocess.CalledProcessError as cpe:
-            logger.error(
-                "mounting iso failed with status %d:\n{}".format(
-                    cpe.returncode, cpe.output))
-        # clean up the mount on program exit (lazily, as the container will
-        # still access it)
-        atexit.register(subprocess.call, ["umount", "-l", iso_mount])
-
     squashfs_path = os.path.join(iso_mount, "casper", "filesystem.squashfs")
-    if not os.path.isfile(squashfs_path):
-        logger.error("'%s' does not contain /casper/filesystem.squashfs", image)
-        return None
+
+# TODO: Replace this by just checking the ISO passed in argument is valid
+#    if not os.path.isfile(squashfs_path):
+#        logger.error("'%s' does not contain /casper/filesystem.squashfs", image)
+#        return None
     logger.debug("found squashfs on ISO image: %s", squashfs_path)
     return squashfs_path
 

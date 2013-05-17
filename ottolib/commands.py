@@ -192,11 +192,6 @@ class Commands(object):
         container_config.squashfs = squashfs
         container_config.image = imagepath
         logger.debug("selected squashfs is: {}".format(container_config.squashfs))
-        if not os.path.isfile(container_config.squashfs):
-            logger.error("{} doesn't exist. Please provide an iso or a "
-                         "squashfs when starting the container.".format(
-                             container_config.squashfs))
-            return 1
 
         # custom installation handling
         if self.args.new:
