@@ -86,7 +86,7 @@ class Commands(object):
                             help="remove latest custom-installation directory for a vanilla "
                             "ISO run")
 
-        pstart.add_argument("-k", "--keepdelta", action='store_true',
+        pstart.add_argument("-k", "--keep-delta", action='store_true',
                             default=False,
                             help="Keep latest delta to restart in the exact same state")
         pstart.add_argument('-D', '--force-disconnect', action='store_true',
@@ -206,7 +206,7 @@ class Commands(object):
             if not self.container.install_custom_installation(custom_installation):
                 return 1
 
-        if not self.args.keepdelta:
+        if not self.args.keep_delta:
             self.container.remove_delta()
 
         if not self.container.start():

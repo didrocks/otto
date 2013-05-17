@@ -88,7 +88,7 @@ class Container(object):
         # Scripts
         os.makedirs(os.path.join(self.guestpath, "scripts"))
         # tools and default config from otto
-        self.copy_otto_files()
+        self._copy_otto_files()
 
         logger.debug("Done")
         return 0
@@ -137,7 +137,7 @@ class Container(object):
         self.config.runid = int(time.time())
 
         # tools and default config from otto
-        self.copy_otto_files()
+        self._copy_otto_files()
 
         logger.info("Starting container '{}'".format(self.name))
         if not self.container.start():
@@ -172,7 +172,7 @@ class Container(object):
         logger.info("Container '{}' stopped".format(self.name))
         return 0 if not self.running else 1
 
-    def copy_otto_files(self):
+    def _copy_otto_files(self):
         """Copy otto files from trunk to container
 
         This enables to refresh with the latest files from the tree"""
