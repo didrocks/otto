@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 import lxc
 import os
 import shutil
-import sys
+import tarfile
 import time
 
 from . import const, utils
@@ -239,9 +239,15 @@ class Container(object):
         with ignored(OSError):
             shutil.rmtree(os.path.join(self.rundir, "delta"))
 
-    def restore(self, archive_path):
+    def restore(self, archive):
         """Restore an old container run"""
-        logger.info("Restoring an old archive run from {}".format(archive_path))
-        # TODO: blahblahblah, copy to run/
-        #
+        logger.info("Restoring an old archive run from {}".format(archive))
+        if os.path.isabs(archive):
+            restorefile = archive
+        else:
+            restorefile = os.path.join(self.guestpath, const.ARCHIVEDIR, archive)
+        with ignored(OSError):
+            shutil.rmtree(os.path.join(self.rundir))
+        with tarfile.open(restorefile, "r:gz") as f:
+            f.extractall(self.rundir)
         self._refreshconfig()

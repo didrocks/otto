@@ -151,7 +151,7 @@ class Commands(object):
 
         # handling incompatible CLI parameters
         # Restoring from a previous state mean keeping the delta
-        if self.args.archive:
+        if self.args.restore:
             self.args.keep_delta = True
         if self.args.restore and (self.args.custom_installation or self.args.new):
             logger.error("Can't restore while asking a new custom-installation or starting afresh "
@@ -184,7 +184,11 @@ class Commands(object):
 
         # state saving handling
         if self.args.restore:
-            self.container.restore()
+            try:
+                self.container.restore(self.args.restore)
+            except FileNotFoundError as e:
+                logger.error("Selected archive doesn't exist. Can't restore: {}. Exiting!".format(e))
+                return 1
 
         container_config = self.container.config
 
