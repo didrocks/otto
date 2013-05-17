@@ -232,7 +232,7 @@ def exit_missing_imports(modulename, package):
     try:
         __import__(modulename)
     except ImportError as exc:
-        print("{} is missing: you need to install {}".format(exc, package))
+        print("{}: you need to install {}".format(exc, package))
         sys.exit(1)
 
 
