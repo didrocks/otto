@@ -183,7 +183,7 @@ class Commands(object):
             return ret
 
         # Hack on the host system for people wanting to run lxc-start directly
-        if not os.path.isfile("/etc/apparmor.d/disabfe/usr.bin.lxc-start"):
+        if not os.path.isfile("/etc/apparmor.d/disable/usr.bin.lxc-start"):
             logger.warning("lxc-start is still under apparmor protection. "
                            "If you intend to run lxc-start directly, it will not work. "
                            "You should run:\n"
