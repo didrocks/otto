@@ -2,7 +2,7 @@
 
 #
 # This script eventually archive all the specific configuration and delta
-# from a LXC container run
+# from a LXC container run and unmount the necessary items
 #
 
 # Copyright © 2013 Canonical Ltd.
