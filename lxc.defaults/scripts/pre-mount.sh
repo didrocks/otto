@@ -83,12 +83,14 @@ prepare_user() {
         exit 1
     fi
 
-
     # Adds the user to the 'video' group as ACLs will not work in the
     # container on bind-mounted devices
     chroot $rootfs adduser $username video || true
     echo "$username:$username" | chroot $rootfs chpasswd || true
     echo "$username ALL=(ALL) NOPASSWD:ALL" > $rootfs/etc/sudoers.d/$username
+
+    # $HOME/.local is set to 0600 on the ISO, change it to something useful
+    chmod 0755 $rootfs/home/$username/.local
 }
 
 configure_system() {
