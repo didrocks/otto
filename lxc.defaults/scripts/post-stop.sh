@@ -42,7 +42,6 @@ archive() {
 }
 
 unmount_fs() {
-    iso_mount="/run/otto/iso/$(echo $IMAGE | tr '/' '_')"
     squashfs_dir="$(dirname $LXC_CONFIG_FILE)/squashfs"
 
     umount.aufs $LXC_ROOTFS_PATH || true

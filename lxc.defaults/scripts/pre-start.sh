@@ -29,8 +29,6 @@
 BASEDIR=$(dirname $LXC_CONFIG_FILE)
 RUNDIR=$BASEDIR/run
 rootfs=$LXC_ROOTFS_PATH
-RELEASE=$(distro-info --devel)
-ARCH=$(dpkg --print-architecture)
 TESTUSER=ubuntu
 
 # source run specific configuration
@@ -50,11 +48,10 @@ prepare_fs() {
     # $1: Path to squashfs file
     #
 
-    iso_mount="/run/otto/iso/$(echo $IMAGE | tr '/' '_')"
-    if ! mountpoint -q $iso_mount; then
-        echo "I: $iso_mount not mounted yet, creating and mounting"
-        mkdir -p $iso_mount
-        mount -n -o loop $IMAGE $iso_mount
+    if ! mountpoint -q $ISOMOUNT; then
+        echo "I: $ISOMOUNT not mounted yet, creating and mounting"
+        mkdir -p $ISOMOUNT
+        mount -n -o loop $IMAGE $ISOMOUNT
     fi
     squashfs_path=$(readlink -f $1)
 

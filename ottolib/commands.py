@@ -210,13 +210,13 @@ class Commands(object):
                 return 1
 
         # mount and get iso and squashfs path
-        (iso, squashfs) = utils.get_iso_and_squashfs(imagepath)
-        if iso is None or squashfs is None:
+        (isomount, squashfs) = utils.get_iso_and_squashfs(imagepath)
+        if isomount is None or squashfs is None:
             return 1
-        container_config.iso = iso
+        container_config.isomount = isomount
         container_config.squashfs = squashfs
         container_config.image = imagepath
-        logger.debug("selected iso is {}, and squashfs is: {}".format(container_config.iso,
+        logger.debug("selected iso is {}, and squashfs is: {}".format(container_config.isomount,
                                                                       container_config.squashfs))
 
         # custom installation handling
@@ -228,8 +228,7 @@ class Commands(object):
                 return 1
 
         # get iso infos and manage delta
-        # TODO and DISCUSS: we need imagepath to be an iso, should we remove the squashfs support on -i?
-        (isoid, release, arch) = self._extract_cd_info(os.path.dirname(os.path.dirname(squashfs)))
+        (isoid, release, arch) = self._extract_cd_info(isomount)
         if self.args.keep_delta:
             logger.debug("Checking that the iso is compatible with the delta.")
             if not (container_config.isoid == isoid and

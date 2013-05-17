@@ -142,6 +142,7 @@ class Container(object):
         self._copy_otto_files()
 
         logger.info("Starting container '{}'".format(self.name))
+        return 0
         if not self.container.start():
             logging.error("Can't start lxc container")
             return 1
@@ -198,6 +199,7 @@ class Container(object):
         with ignored(OSError):
             shutil.rmtree(dst)
         shutil.copytree(src, dst)
+        utils.set_executable(os.path.join(dst, "pre-start.sh"))
         utils.set_executable(os.path.join(dst, "pre-mount.sh"))
         utils.set_executable(os.path.join(dst, "post-stop.sh"))
 
