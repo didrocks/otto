@@ -41,7 +41,6 @@ class Container(object):
         self.wait = self.container.wait
         self.guestpath = os.path.join(const.LXCBASE, name)
         self.rundir = os.path.join(self.guestpath, const.RUNDIR)
-        self.custom_install_dirs_list = ("packages", "target-override")
 
         # Create root tree
         if create:
@@ -218,20 +217,23 @@ class Container(object):
             logger.warning("You provided a wrong custom installation path. Exiting!")
             return False
 
-        for dir in self.custom_install_dirs_list:
-            with ignored(OSError):
-                shutil.rmtree(os.path.join(self.rundir, dir))
-            shutil.copytree(os.path.join(path, dir),
-                            os.path.join(self.rundir, dir))
+        self.remove_custom_installation()
+        for candidate in os.listdir(path):
+            shutil.copytree(os.path.join(path, candidate),
+                            os.path.join(self.rundir, candidate))
         return True
 
     def remove_custom_installation(self):
         """Delete custom installation content from latest run"""
 
         logger.info("Removing old customization")
-        for dir in self.custom_install_dirs_list:
-            with ignored(OSError):
-                shutil.rmtree(os.path.join(self.rundir, dir))
+        for candidate in os.listdir(self.rundir):
+            if candidate not in ("config", "delta"):
+                candidate = os.path.join(self.rundir, candidate)
+                try:
+                    shutil.rmtree(candidate)
+                except NotADirectoryError:
+                    os.remove(candidate)
 
     def remove_delta(self):
         """Delete delta content from latest run"""
