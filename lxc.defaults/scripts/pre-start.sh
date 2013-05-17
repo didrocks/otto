@@ -47,7 +47,6 @@ prepare_fs() {
     #
     # $1: Path to squashfs file
     #
-
     if ! mountpoint -q $ISOMOUNT; then
         echo "I: $ISOMOUNT not mounted yet, creating and mounting"
         mkdir -p $ISOMOUNT

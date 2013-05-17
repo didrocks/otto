@@ -90,6 +90,7 @@ prepare_user() {
     echo "$username ALL=(ALL) NOPASSWD:ALL" > $rootfs/etc/sudoers.d/$username
 
     # $HOME/.local is set to 0600 on the ISO, change it to something useful
+    [ ! -d "$rootfs/home/$username/.local" ] && mkdir $rootfs/home/$username/.local
     chmod 0755 $rootfs/home/$username/.local
 }
 
