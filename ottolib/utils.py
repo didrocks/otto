@@ -19,11 +19,11 @@ Utilities - part of the project otto
 # this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-import atexit
 from contextlib import contextmanager
 import logging
 logger = logging.getLogger(__name__)
 import os
+import shutil
 import stat
 import subprocess
 import sys
@@ -232,7 +232,14 @@ def exit_missing_imports(modulename, package):
     try:
         __import__(modulename)
     except ImportError as exc:
-        print("{}: you need to install {}".format(exc, package))
+        print("{} is missing: you need to install {}".format(exc, package))
+        sys.exit(1)
+
+
+def exit_missing_command(command, package):
+    """Exit if a command is missing"""
+    if not shutil.which(command):
+        print("{} is missing: you need to install {}".format(command, package))
         sys.exit(1)
 
 

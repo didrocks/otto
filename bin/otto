@@ -30,15 +30,18 @@ OTTOLIB = os.path.abspath(os.path.dirname(sys.path[0]))
 if os.path.isdir(OTTOLIB):
     sys.path.insert(1, OTTOLIB)
 
-from ottolib.utils import exit_missing_imports
+from ottolib.utils import exit_missing_imports, exit_missing_command
 
-# Check requirements
+# Check import requirements
 exit_missing_imports('lxc', 'python3-lxc')
 
 from ottolib import commands
 
 
 if __name__ == "__main__":
+
+    # Check binary requirements
+    exit_missing_command("umount.aufs", "aufs-tools")
 
     cmd = commands.Commands()
     if cmd.run is None:
