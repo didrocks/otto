@@ -11,6 +11,7 @@ lxc.hook.pre-start = /var/lib/lxc/${NAME}/scripts/pre-start.sh
 lxc.hook.pre-mount = /var/lib/lxc/${NAME}/scripts/pre-mount.sh
 lxc.hook.post-stop = /var/lib/lxc/${NAME}/scripts/post-stop.sh
 lxc.hook.mount = /usr/share/lxc/hooks/mountcgroups
+lxc.hook.post-stop = /var/lib/lxc/${NAME}/scripts/post-stop.sh
 
 lxc.devttydir = lxc
 lxc.tty = 4

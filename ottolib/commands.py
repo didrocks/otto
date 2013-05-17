@@ -85,10 +85,15 @@ class Commands(object):
                             default=False,
                             help="remove latest custom-installation directory for a vanilla "
                             "ISO run")
-
         pstart.add_argument("-k", "--keep-delta", action='store_true',
                             default=False,
-                            help="Keep latest delta to restart in the exact same state")
+                            help="Keep delta from latest run to restart in the exact same state")
+        pstart.add_argument("-s", "--archive", action='store_true',
+                            default=False,
+                            help="Archive the run result in a container state file")
+        pstart.add_argument("-r", "--restore",
+                            default=None,
+                            help="Restore a previous the run state from an archive")
         pstart.add_argument('-D', '--force-disconnect', action='store_true',
                             default=False,
                             help="Forcibly shutdown lightdm even if a session "
@@ -144,6 +149,15 @@ class Commands(object):
         @return: Return code of Container.start() method
         """
 
+        # handling incompatible CLI parameters
+        # Restoring from a previous state mean keeping the delta
+        if self.args.archive:
+            self.args.keep_delta = True
+        if self.args.restore and (self.args.custom_installation or self.args.new):
+            logger.error("Can't restore while asking a new custom-installation or starting afresh "
+                         "(new). Exiting!")
+            return(1)
+
         # first, check that the container is not running
         if self.container.running:
             logger.warning("Container '{}' already running. Skipping!".format(self.container.name))
@@ -168,8 +182,13 @@ class Commands(object):
                          "Aborting!".format(srv))
             return ret
 
+        # state saving handling
+        if self.args.restore:
+            self.container.restore()
+
         container_config = self.container.config
 
+        # image handling
         if self.args.image is not None:
             imagepath = os.path.realpath(self.args.image)
         else:
@@ -186,6 +205,7 @@ class Commands(object):
                              "Exiting!".format(imagepath))
                 return 1
 
+        # set selected squashfs
         squashfs = utils.get_squashfs(imagepath)
         if squashfs is None:
             return 1
@@ -201,8 +221,32 @@ class Commands(object):
             if not self.container.install_custom_installation(custom_installation):
                 return 1
 
-        if not self.args.keep_delta:
+        # get iso infos and manage delta
+        # TODO and DISCUSS: we need imagepath to be an iso, should we remove the squashfs support on -i?
+        (isoid, release, arch) = self._extract_cd_info(os.path.dirname(os.path.dirname(squashfs)))
+        if self.args.keep_delta:
+            logger.debug("Checking that the iso is compatible with the delta.")
+            if not (container_config.isoid == isoid and
+                    container_config.release == release and
+                    container_config.arch == arch):
+                logger.error("Can't reuse a previous run delta: the previous run was used with "
+                             "{deltaisoid}, {deltarelease}, {deltaarch} and {imagepath} is for "
+                             "{isoid}, {release}, {arch}. Please provide the same iso in parameter. "
+                             "Exiting!".format(deltaisoid=container_config.isoid,
+                                               deltarelease=container_config.release,
+                                               deltaarch=container_config.arch,
+                                               isoid=isoid, release=release, arch=arch,
+                                               imagepath=imagepath))
+                return(1)
+        else:
             self.container.remove_delta()
+        container_config.isoid = isoid
+        container_config.release = release
+        container_config.arch = arch
+
+        # that enable us to overwrite the restored "archive" state from restore()
+        # if we don't want to resave the restored run
+        container_config.archive = self.args.archive
 
         if not self.container.start():
             return 1
@@ -229,3 +273,18 @@ class Commands(object):
         # TODO:
         #   - Wait for stop
         return self.container.stop()
+
+    def _extract_cd_info(self, image_path):
+        """Extract CD infos and populate the config with it"""
+        with open(os.path.join(image_path, ".disk", "info")) as f:
+            isoid = f.read().replace("\"", "").replace(" ", "_").replace('-',
+                                           "_").replace("(", "").replace(")",
+                                           "").replace("___", "_").lower()
+        for candidate_release in os.listdir(os.path.join(image_path, "dists")):
+            if candidate_release not in ('stable', 'unstable'):
+                release = candidate_release
+        with open(os.path.join(image_path, "README.diskdefines")) as f:
+            for line in f:
+                if line.startswith("#define ARCH  "):
+                    arch = line.split()[-1]
+        return (isoid, release, arch)

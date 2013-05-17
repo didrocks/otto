@@ -21,6 +21,7 @@ Various Constants - part of the project otto
 
 LXCBASE = "/var/lib/lxc"
 RUNDIR = "run"
+ARCHIVEDIR = "archive"
 
 START_TIMEOUT = 60
 STOP_TIMEOUT = 30

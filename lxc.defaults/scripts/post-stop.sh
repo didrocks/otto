@@ -1,11 +1,12 @@
 #!/bin/sh -eux
 
 #
-# This script prepares an LXC container from an ISO image and setup an overlay
-# to run tests on it.
+# This script eventually archive all the specific configuration and delta
+# from a LXC container run
 #
 
 # Copyright © 2013 Canonical Ltd.
+# Author: Didier Roche <didier.roche@canonical.com>
 # Author: Jean-baptiste Lallement <jean-baptiste.lallement@canonical.com>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -20,18 +21,9 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-#
-
-# TODO:
-# - Add an option to keep an exsting delta
-# - Add an option to restore from an existing delta
 
 BASEDIR=$(dirname $LXC_CONFIG_FILE)
 RUNDIR=$BASEDIR/run
-rootfs=$LXC_ROOTFS_PATH
-RELEASE=$(distro-info --devel)
-ARCH=$(dpkg --print-architecture)
-TESTUSER=ubuntu
 
 # source run specific configuration
 CONFIG=$RUNDIR/config
@@ -41,12 +33,26 @@ if [ ! -r "$CONFIG" ]; then
 fi
 . $CONFIG
 
+archive() {
+    mkdir -p "$ARCHIVEDIR"
+    previous_dir=$(pwd)
+    cd $RUNDIR
+    tar -czf "$ARCHIVEDIR/$ISOID.$RUNID.otto" .
+    cd $previous_dir
+}
+
 unmount_fs() {
     iso_mount="/run/otto/iso/$(echo $IMAGE | tr '/' '_')"
     squashfs_dir="$(dirname $LXC_CONFIG_FILE)/squashfs"
 
     umount.aufs $LXC_ROOTFS_PATH || true
-    umount $squashfs_dir || true 
+    umount $squashfs_dir || true
     umount $iso_mount || true
 }
+
+
 unmount_fs $SQUASHFS
+
+if [ "$ARCHIVE" = "True" ] ; then
+    archive
+fi

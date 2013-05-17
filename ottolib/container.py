@@ -41,7 +41,7 @@ class Container(object):
         self.wait = self.container.wait
         self.guestpath = os.path.join(const.LXCBASE, name)
         self.rundir = os.path.join(self.guestpath, const.RUNDIR)
-        self.config = ConfigGenerator(self.rundir)
+        self.custom_install_dirs_list = ("packages", "target-override")
 
         # Create root tree
         if create:
@@ -51,7 +51,7 @@ class Container(object):
             if not os.path.isdir(self.guestpath):
                 raise Exception("Container {} does not exist.".format(name))
 
-        self.custom_install_dirs_list = ("packages", "target-override")
+        self._refreshconfig()
 
     @property
     def running(self):
@@ -136,6 +136,8 @@ class Container(object):
         # regenerate a new runid, even if restarting an old run
         self.config.runid = int(time.time())
 
+        self.config.archivedir = os.path.join(self.guestpath, const.ARCHIVEDIR)
+
         # tools and default config from otto
         self._copy_otto_files()
 
@@ -172,6 +174,10 @@ class Container(object):
         logger.info("Container '{}' stopped".format(self.name))
         return 0 if not self.running else 1
 
+    def _refreshconfig(self):
+        """Force recreate a new config object attached to the content in run/config"""
+        self.config = ConfigGenerator(self.rundir)
+
     def _copy_otto_files(self):
         """Copy otto files from trunk to container
 
@@ -189,11 +195,10 @@ class Container(object):
 
         src = os.path.join(lxcdefaults, "scripts")
         dst = os.path.join(self.guestpath, "scripts")
-        shutil.copy(os.path.join(src, "pre-start.sh"), dst)
-        utils.set_executable(os.path.join(dst, "pre-start.sh"))
-        shutil.copy(os.path.join(src, "pre-mount.sh"), dst)
+        with ignored(OSError):
+            shutil.rmtree(dst)
+        shutil.copytree(src, dst)
         utils.set_executable(os.path.join(dst, "pre-mount.sh"))
-        shutil.copy(os.path.join(src, "post-stop.sh"), dst)
         utils.set_executable(os.path.join(dst, "post-stop.sh"))
 
         src = os.path.join(lxcdefaults, "guest")
@@ -233,3 +238,10 @@ class Container(object):
         logger.info("Removing old delta")
         with ignored(OSError):
             shutil.rmtree(os.path.join(self.rundir, "delta"))
+
+    def restore(self, archive_path):
+        """Restore an old container run"""
+        logger.info("Restoring an old archive run from {}".format(archive_path))
+        # TODO: blahblahblah, copy to run/
+        #
+        self._refreshconfig()
