@@ -41,12 +41,50 @@ if [ ! -r "$CONFIG" ]; then
 fi
 . $CONFIG
 
-unmount_fs() {
-    iso_mount="/run/otto/iso/$(echo $IMAGE | tr '/' '_')"
-    squashfs_dir="$(dirname $LXC_CONFIG_FILE)/squashfs"
 
-    umount.aufs $LXC_ROOTFS_PATH || true
-    umount $squashfs_dir || true 
-    umount $iso_mount || true
+prepare_fs() {
+    # This function prepares the container with the directories required to
+    # expose hardware from the host to the container, mounts the ISO and
+    # extracts the squashfs and prepares the overlay used to store the delta
+    #
+    # $1: Path to squashfs file
+    #
+
+    iso_mount="/run/otto/iso/$(echo $IMAGE | tr '/' '_')"
+    if ! mountpoint -q $iso_mount; then
+        echo "I: $iso_mount not mounted yet, creating and mounting"
+        mkdir -p $iso_mount
+        mount -n -o loop $IMAGE $iso_mount
+    fi
+    squashfs_path=$(readlink -f $1)
+
+    if [ ! -r "$squashfs_path" ]; then
+        echo "E: File doesn't exist '$squashfs_path'. Exiting!"
+        exit 1
+    fi
+
+    modprobe aufs
+
+    # delta_dir is the overlay and will contain all the files that have been
+    # changed in the container
+	delta_dir="$RUNDIR/delta"
+    # TODO: Make it an option of the start command of otto
+	#rm -Rf $delta_dir
+	mkdir -p $delta_dir
+
+    # Mount the squashfs
+    squashfs_dir="$(dirname $LXC_CONFIG_FILE)/squashfs"
+	mkdir -p $squashfs_dir
+	mount -n -o loop,ro $squashfs_path $squashfs_dir
+
+    # FIXME: Overlayfs leaks loop devices
+	#mount -n -t overlayfs -o upperdir=$delta_dir,lowerdir=$SQUASHFS_DIR overlayfs $LXC_ROOTFS_PATH
+	mount -n -t aufs -o br=$delta_dir=rw:$squashfs_dir=ro aufs $LXC_ROOTFS_PATH
+	umount -l $squashfs_dir
+
+	# Create hardware devices
+	mkdir -p $LXC_ROOTFS_PATH/dev/dri $LXC_ROOTFS_PATH/dev/snd $LXC_ROOTFS_PATH/dev/input
+	mkdir -p $LXC_ROOTFS_PATH/var/lxc/udev
 }
-unmount_fs $SQUASHFS
+
+prepare_fs $SQUASHFS
