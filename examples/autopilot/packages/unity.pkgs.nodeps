@@ -27,4 +27,3 @@ libappindicator1
 gir1.2-appindicator3-0.1
 libdbusmenu-qt5
 appmenu-qt5
-indicator-network
