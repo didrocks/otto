@@ -1,0 +1,79 @@
+= Otto - GUI application testing tool in LXC =
+
+Otto is a tool for functional testing of GUI application on hardware using LXC
+containers.
+
+  - Physical devices (graphics card, sound and input devices) are shared
+    between the host and the container, so the container has access to the
+    capabilities of the host like video acceleration.
+  - There is no provisioning, it is replaced by simply mounting a squashfs
+    from an iso image.
+  - Boot time of the container is just a few seconds.
+  - It runs on any hardware where the kernel supports LXC and an overlay FS
+    (aufs, overlayfs)
+
+The home page of the project is http://launchpad.net/otto
+
+= Installation =
+
+On Ubuntu 13.04 (Raring Ringtail) or newer release:
+  * Install a default raring-server-amd64 image on a physical machine Install
+  * bzr, python3-lxc and aufs-tools
+
+    $ sudo apt-get install bzr --no-install-recommends $ sudo apt-get install
+    python3-lxc aufs-tools
+
+  * branch otto from launchpad
+
+    $ bzr branch lp:otto $ cd otto
+
+  * Try to run otto:
+    $ sudo bin/otto --help
+
+  * You'll need to run lxc-start unconfined to allow mounting /dev/loop0
+  * during
+    the pre-start hook
+
+    $ sudo apparmor_parser -R /etc/apparmor.d/usr.bin.lxc-start $ sudo ln -s
+    /etc/apparmor.d/usr.bin.lxc-start /etc/apparmor.d/disable/
+
+
+= Running Otto =
+
+  * Create the first container:
+    
+    $ sudo bin/otto create raring-auto
+
+  * Test by copying one iso and start otto
+
+    $ cd ..  
+    $ mkdir iso 
+    $ zsync http://releases.ubuntu.com/raring/ubuntu-13.04-server-amd64.iso.zsync 
+    $ sudo bin/otto -d start raring-auto -i /home/ubuntu/iso/raring-desktop-amd64.iso
+
+-> check that everything is started normally
+
+    $ sudo bin/otto -d stop raring-auto $ sudo bin/otto -d start raring-auto
+
+-> the same container should restart
+
+(Note: if there is a black screen and the session doesn't start then run stop
+and start again this is a bug we are investigating)
+
+    $ sudo bin/otto -d stop raring-auto $ sudo bin/otto -d start raring-auto \
+        -i /home/ubuntu/iso/raring-desktop-amd64.iso -C ./example/autopilot/
+
+-> If packages failed to install the logs are located in
+/var/log/upstart/packages.log
+  
+= Origin of the name =
+This tool has originally been written to replace UTAH [1] to run autopilot [2]
+tests of Ubuntu Unity and other stacks running with Unity. The name "Otto"
+comes from the name of the autopilot in the 1980 satirical movie Airplane!
+[3][4]
+
+
+[1] http://launchpad.net/utah
+[2] http://launchpad.net/autopilot
+[3] http://en.wikipedia.org/wiki/Airplane!
+[4] http://uncyclopedia.wikia.com/wiki/Otto
