@@ -1,0 +1,3 @@
+# Customize the test tree _before_ the container starts and the
+# testsuite directory is copied to $rootfs
+echo "Hello $0"

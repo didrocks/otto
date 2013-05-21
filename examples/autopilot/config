@@ -1,0 +1,2 @@
+#LOGFILES="/var/log/syslog /home/ubuntu/.xsession-errors"
+ARTIFACTS="/home/ubuntu"
