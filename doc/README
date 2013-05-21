@@ -17,11 +17,11 @@ The home page of the project is http://launchpad.net/otto
 = Installation =
 
 On Ubuntu 13.04 (Raring Ringtail) or newer release:
-  * Install a default raring-server-amd64 image on a physical machine Install
-  * bzr, python3-lxc and aufs-tools
+  * Install a default raring-server-amd64 image on a physical machine 
+  * Install bzr, python3-lxc and aufs-tools
 
-    $ sudo apt-get install bzr --no-install-recommends $ sudo apt-get install
-    python3-lxc aufs-tools
+    $ sudo apt-get install bzr --no-install-recommends
+    $ sudo apt-get install python3-lxc aufs-tools
 
   * branch otto from launchpad
 
@@ -30,12 +30,11 @@ On Ubuntu 13.04 (Raring Ringtail) or newer release:
   * Try to run otto:
     $ sudo bin/otto --help
 
-  * You'll need to run lxc-start unconfined to allow mounting /dev/loop0
-  * during
-    the pre-start hook
+  * You'll need to run lxc-start unconfined to allow mounting /dev/loop0 
+    during the pre-start hook
 
-    $ sudo apparmor_parser -R /etc/apparmor.d/usr.bin.lxc-start $ sudo ln -s
-    /etc/apparmor.d/usr.bin.lxc-start /etc/apparmor.d/disable/
+    $ sudo apparmor_parser -R /etc/apparmor.d/usr.bin.lxc-start
+    $ sudo ln -s /etc/apparmor.d/usr.bin.lxc-start /etc/apparmor.d/disable/
 
 
 = Running Otto =
@@ -60,8 +59,10 @@ On Ubuntu 13.04 (Raring Ringtail) or newer release:
 (Note: if there is a black screen and the session doesn't start then run stop
 and start again this is a bug we are investigating)
 
-    $ sudo bin/otto -d stop raring-auto $ sudo bin/otto -d start raring-auto \
-        -i /home/ubuntu/iso/raring-desktop-amd64.iso -C ./example/autopilot/
+    $ sudo bin/otto -d stop raring-auto 
+    $ sudo bin/otto -d start raring-auto \
+        -i /home/ubuntu/iso/raring-desktop-amd64.iso \
+        -C ./example/autopilot/
 
 -> If packages failed to install the logs are located in
 /var/log/upstart/packages.log
