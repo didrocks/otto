@@ -1,9 +1,38 @@
-#!/usr/bin/python3
-class OttoError(Exception):
-    internal_error = False
+"""
+Class for handling custom exceptions
+"""
 
+# Copyright (C) 2013 Canonical
+#
+# Authors: Jean-Baptiste Lallement <jean-baptiste.lallement@canonical.com>
+#
+# This program is free software; you can redistribute it and/or modify it
+# under
+# the terms of the GNU General Public License as published by the Free
+# Software
+# Foundation; version 3.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+
+class OttoError(Exception):
+    """
+    Parent class  to handle custom exceptions. Custom exception will subclass
+    it.
+    """
     def __init__(self, msg=None, **kwds):
-        BaseException.__init__(self)
+        """
+        Constructor
+        """
+        Exception.__init__(self)
         for key, value in kwds.items():
             setattr(self, key, value)
         self._msg = msg
@@ -38,21 +67,7 @@ class OttoError(Exception):
 
     @property
     def errorcode(self):
+        """
+        returncode can be overriden in a subclass otherwise 255 is returned
+        """
         return self._errorcode if hasattr(self, "_errorcode") else 255
-
-class FileNotFound(OttoError):
-    _fmt = "The file '%(filename)s' could not be found"
-    _errorcode = 5
-    def __init__(self, filename, msg=None):
-        OttoError.__init__(self, filename=filename, msg=msg)
-        #self.filename = filename
-
-class InvalidArgument(OttoError):
-    _msg = "InvalidArgument"
-    def __init__(self, msg):
-        self.errorcode=2
-
-try:
-    raise FileNotFound("MyFile", "This is a bug")
-except FileNotFound as exc:
-    print("FNF {} {}".format(exc, exc.errorcode))
