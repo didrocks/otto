@@ -303,12 +303,12 @@ class Commands(object):
         # 'RUNNING' it'd mean the container restarted, then it should block on
         # 'STOPPED' again with a new timeout = TEST_TIMEOUT -
         # time_elapsed_since_start_of_the_session
-        self.container.wait('STOPPED', const.TEST_TIMEOUT)
-        if self.container.running:
-            logger.error("Test didn't stop within %d seconds",
-                         const.TEST_TIMEOUT)
-            self.container.stop()  # Or kill
-            return 1
+        #self.container.wait('STOPPED', const.TEST_TIMEOUT)
+        #if self.container.running:
+        #    logger.error("Test didn't stop within %d seconds",
+        #                 const.TEST_TIMEOUT)
+        #    self.container.stop()  # Or kill
+        #    return 1
         return 0
 
     def cmd_stop(self):
