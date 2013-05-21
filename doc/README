@@ -52,7 +52,8 @@ On Ubuntu 13.04 (Raring Ringtail) or newer release:
 
 -> check that everything is started normally
 
-    $ sudo bin/otto -d stop raring-auto $ sudo bin/otto -d start raring-auto
+    $ sudo bin/otto -d stop raring-auto 
+    $ sudo bin/otto -d start raring-auto
 
 -> the same container should restart
 

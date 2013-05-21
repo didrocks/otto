@@ -205,8 +205,12 @@ class Container(object):
 
         self.remove_custom_installation()
         for candidate in os.listdir(path):
-            shutil.copytree(os.path.join(path, candidate),
-                            os.path.join(self.rundir, candidate))
+            src=os.path.join(path, candidate)
+            dst=os.path.join(self.rundir, candidate)
+            if os.path.isdir(src):
+                shutil.copytree(src, dst)
+            else:
+                shutil.copy(src, dst)
 
     def remove_custom_installation(self):
         """Delete custom installation content from latest run"""
