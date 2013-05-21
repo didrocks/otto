@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 import os
 import subprocess
 import sys
-import shutil
 from textwrap import dedent
 
 from . import const, container, utils
@@ -148,7 +147,6 @@ class Commands(object):
 
         @return: Return code of Container.start() method
         """
-
         # handling incompatible CLI parameters
         # Restoring from a previous state mean keeping the delta
         if self.args.restore:
@@ -156,7 +154,7 @@ class Commands(object):
         if self.args.restore and (self.args.custom_installation or self.args.new):
             logger.error("Can't restore while asking a new custom-installation or starting afresh "
                          "(new). Exiting!")
-            return(1)
+            return 1
 
         # first, check that the container is not running
         if self.container.running:
