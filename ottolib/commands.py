@@ -28,6 +28,7 @@ import sys
 from textwrap import dedent
 
 from . import const, container, utils
+from .container import ContainerError
 
 
 class Commands(object):
@@ -135,18 +136,28 @@ class Commands(object):
             try:
                 self.container = container.Container(self.args.name,
                                                      create=self.args.cmd_name=="create")
-            except Exception as exc:
+            except ContainerError as exc:
                 logger.error("Error when trying to use the container: "
                              "{}".format(exc))
                 sys.exit(1)
 
     def cmd_create(self):
         """ Creates a new container """
-        return self.container.create()
+        try:
+            self.container.create()
+            return 0
+        except ContainerError as e:
+            logger.error(e)
+            return 1
 
     def cmd_destroy(self):
         """ Destroys a container """
-        return self.container.destroy()
+        try:
+            self.container.destroy()
+            return 0
+        except ContainerError as e:
+            logger.error(e)
+            return 1
 
     def cmd_start(self):
         """ Starts a container
@@ -159,12 +170,12 @@ class Commands(object):
             self.args.keep_delta = True
         if self.args.restore and (self.args.custom_installation or self.args.new):
             logger.error("Can't restore while asking a new custom-installation or starting afresh "
-                         "(new). Exiting!")
+                         "(new).")
             return 1
 
         # first, check that the container is not running
         if self.container.running:
-            logger.warning("Container '{}' already running. Skipping!".format(self.container.name))
+            logger.warning("Container '{}' already running.".format(self.container.name))
             return 1
 
         # Don't shoot any logged in user
@@ -199,7 +210,7 @@ class Commands(object):
             try:
                 self.container.restore(self.args.restore)
             except FileNotFoundError as e:
-                logger.error("Selected archive doesn't exist. Can't restore: {}. Exiting!".format(e))
+                logger.error("Selected archive doesn't exist. Can't restore: {}.".format(e))
                 return 1
 
         container_config = self.container.config
@@ -213,12 +224,11 @@ class Commands(object):
             except AttributeError:
                 logger.error("No image provided on the command line and you didn't "
                              "have any previous run into that container. "
-                             "Please specify an image with -i. Exiting!")
+                             "Please specify an image with -i.")
                 return 1
             if not os.path.exists(imagepath):
                 logger.error("No image provided on the command line and '{}' "
-                             "doesn't exist. Please specify an image with -i. "
-                             "Exiting!".format(imagepath))
+                             "doesn't exist. Please specify an image with -i. ".format(imagepath))
                 return 1
 
         # mount and get iso and squashfs path
@@ -236,7 +246,10 @@ class Commands(object):
             self.container.remove_custom_installation()
         custom_installation = self.args.custom_installation
         if custom_installation is not None:
-            if not self.container.install_custom_installation(custom_installation):
+            try:
+                self.container.install_custom_installation(custom_installation)
+            except ContainerError as e:
+                logger.error(e)
                 return 1
 
         # local configuration handling
@@ -258,12 +271,12 @@ class Commands(object):
                     container_config.arch == arch):
                 logger.error("Can't reuse a previous run delta: the previous run was used with "
                              "{deltaisoid}, {deltarelease}, {deltaarch} and {imagepath} is for "
-                             "{isoid}, {release}, {arch}. Please provide the same iso in parameter. "
-                             "Exiting!".format(deltaisoid=container_config.isoid,
-                                               deltarelease=container_config.release,
-                                               deltaarch=container_config.arch,
-                                               isoid=isoid, release=release, arch=arch,
-                                               imagepath=imagepath))
+                             "{isoid}, {release}, {arch}. Please provide the same iso in parameter."
+                             "".format(deltaisoid=container_config.isoid,
+                                       deltarelease=container_config.release,
+                                       deltaarch=container_config.arch,
+                                       isoid=isoid, release=release, arch=arch,
+                                       imagepath=imagepath))
                 return(1)
         else:
             self.container.remove_delta()
@@ -275,7 +288,10 @@ class Commands(object):
         # if we don't want to resave the restored run
         container_config.archive = self.args.archive
 
-        if not self.container.start():
+        try:
+            self.container.start()
+        except ContainerError as e:
+            logger.error(e)
             return 1
 
         # Block until the end of the container
@@ -297,9 +313,13 @@ class Commands(object):
 
     def cmd_stop(self):
         """ Stops a container """
-        # TODO:
-        #   - Wait for stop
-        return self.container.stop()
+        try:
+            self.container.stop()
+            return 0
+        except ContainerError as e:
+            logger.error(e)
+            return 1
+        return 0
 
     def _extract_cd_info(self, image_path):
         """Extract CD infos and populate the config with it"""

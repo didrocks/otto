@@ -27,9 +27,13 @@ import shutil
 import tarfile
 import time
 
-from . import const, utils
+from . import const, errors, utils
 from .configgenerator import ConfigGenerator
 from .utils import ignored
+
+
+class ContainerError(errors.OttoError):
+    pass
 
 
 class Container(object):
@@ -45,10 +49,10 @@ class Container(object):
         # Create root tree
         if create:
             if os.path.exists(self.guestpath):
-                raise Exception("Container already exists. Exiting!")
+                raise ContainerError("Container already exists. Exiting!")
         else:
             if not os.path.isdir(self.guestpath):
-                raise Exception("Container {} does not exist.".format(name))
+                raise ContainerError("Container {} does not exist.".format(name))
 
         self._refreshconfig()
 
@@ -57,7 +61,7 @@ class Container(object):
         return self.container.running
 
     def create(self):
-        """ Creates a new container
+        """Creates a new container
 
         This method creates a new container from scratch. We don't want to use
         the create method from LXC API because the bootstrapping phase is not
@@ -69,16 +73,10 @@ class Container(object):
         will be rsynced to the guest FS by the pre-mount script to install
         additional packages into the container.
 
-        @return: 0 on success, 1 otherwise
-
         TODO:
             - Verify that the source files exist before the copy
             - Override LXC configuration file or append new directives
             - Override default fstab or append new entries
-            - Specify a release (Could this information be extracted from
-              squashfs?)
-            - Normalize return codes as currently the same RC can mean
-              different things
         """
         logger.info("Creating container '%s'", self.name)
 
@@ -90,10 +88,9 @@ class Container(object):
         self._copy_otto_files()
 
         logger.debug("Done")
-        return 0
 
     def destroy(self):
-        """ Destroys a container
+        """Destroys a container
 
         The container is destroyed with the LXC API and we fallback to rmtree()
         if it fails to cover the case of a partially created LXC container i.e
@@ -111,23 +108,17 @@ class Container(object):
                         os.path.join(self.guestpath, "config")):
                 shutil.rmtree(self.guestpath)
             else:
-                logger.info("Path doesn't exist '%s'. Ignoring.",
-                            self.guestpath)
-                return 1
+                raise ContainerError("Path doesn't exist: {}".format(self.guestpath))
         logger.debug("Done")
-        return 0
 
     def start(self):
-        """ Starts a container.
+        """Starts a container.
 
         This method refresh with starts a container and wait for START_TIMEOUT before
         aborting.
-
-        @return: 0 on success 1 on failure
         """
         if self.running:
-            logger.warning("Container '{}' already running. Skipping!".format(self.name))
-            return 0
+            raise ContainerError("Container '{}' already running.".format(self.name))
 
         # ensure we have a rundir
         with ignored(OSError):
@@ -142,36 +133,32 @@ class Container(object):
 
         logger.info("Starting container '{}'".format(self.name))
         if not self.container.start():
-            logging.error("Can't start lxc container")
-            return 1
+            raise ContainerError("Can't start lxc container")
 
         # Wait for the container to start
         self.container.wait('RUNNING', const.START_TIMEOUT)
         logger.info("Container '{}' started".format(self.name))
-        return 0 if self.running else 1
+        if not self.running:
+            raise ContainerError("The container didn't start successfully")
 
     def stop(self):
-        """ Stops a container
+        """Stops a container
 
         This method stops a container and wait for STOP_TIMEOUT before
         aborting.
-
-        @return: 0 on success 1 on failure
-        TODO:
-            - Do not stop if already stopped
         """
         if not self.running:
-            logger.warning("Container '{}' already stopped. Skipping!".format(self.name))
-            return 0
+            raise ContainerError("Container '{}' already stopped.".format(self.name))
 
         logger.info("Stopping container '{}'".format(self.name))
         if not self.container.stop():
-            return 1
+            raise ContainerError("The lxc command returned an error")
 
         # Wait for the container to stop
         self.container.wait('STOPPED', const.STOP_TIMEOUT)
         logger.info("Container '{}' stopped".format(self.name))
-        return 0 if not self.running else 1
+        if self.running:
+            raise ContainerError("The container didn't stop successfully")
 
     def _refreshconfig(self):
         """Force recreate new config objects attached to the content of generated config"""
@@ -214,14 +201,12 @@ class Container(object):
 
         logger.info("Customizing container from '{}'".format(path))
         if not os.path.isdir(path):
-            logger.warning("You provided a wrong custom installation path. Exiting!")
-            return False
+            return ContainerError("You provided a wrong custom installation path.")
 
         self.remove_custom_installation()
         for candidate in os.listdir(path):
             shutil.copytree(os.path.join(path, candidate),
                             os.path.join(self.rundir, candidate))
-        return True
 
     def remove_custom_installation(self):
         """Delete custom installation content from latest run"""
