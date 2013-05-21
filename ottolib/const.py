@@ -23,6 +23,9 @@ LXCBASE = "/var/lib/lxc"
 RUNDIR = "run"
 ARCHIVEDIR = "archive"
 
+CONFIG_FILE = "config"
+LOCAL_CONFIG_FILE = "config.local"
+
 START_TIMEOUT = 60
 STOP_TIMEOUT = 30
 TEST_TIMEOUT = 2 * 3600

@@ -26,13 +26,22 @@ RUNDIR=$BASEDIR/run
 rootfs=$LXC_ROOTFS_PATH
 TESTUSER=ubuntu
 
+APT_ARCHIVE=""
+DISABLE_NETWORK_MANAGER=""
+PROXY=""
+
 # source run specific configuration
 CONFIG=$RUNDIR/config
+LOCAL_CONFIG=$RUNDIR/config.local
 if [ ! -r "$CONFIG" ]; then
     echo "E: No configuration found on $CONFIG. It means you never ran otto start."
     exit 1
 fi
 . $CONFIG
+
+if [ -r "$LOCAL_CONFIG" ]; then
+    . $LOCAL_CONFIG
+fi
 
 
 prepare_fs() {
@@ -126,11 +135,15 @@ ff02::1 ip6-allnodes
 ff02::2 ip6-allrouters
 EOF
 
+    if [ -z "$APT_ARCHIVE" ] ; then
+        APT_ARCHIVE="http://archive.ubuntu.com/ubuntu"
+    fi
+
     # Adds custom sources list as universe is not enabled on image by default
     cat <<EOF > $rootfs/etc/apt/sources.list
-deb http://archive.ubuntu.com/ubuntu $RELEASE main restricted universe multiverse
-deb http://archive.ubuntu.com/ubuntu $RELEASE-updates main restricted universe multiverse
-deb http://archive.ubuntu.com/ubuntu $RELEASE-security main restricted universe multiverse
+deb $APT_ARCHIVE $RELEASE main restricted universe multiverse
+deb $APT_ARCHIVE $RELEASE-updates main restricted universe multiverse
+deb $APT_ARCHIVE $RELEASE-security main restricted universe multiverse
 EOF
 
     # Setup a decent locale
@@ -156,7 +169,22 @@ iface eth0 inet dhcp
 EOF
     fi
 
-    echo "manual" > $rootfs/etc/init/network-manager.override
+    # disable network manager
+    if [ "$DISABLE_NETWORK_MANAGER" != "FALSE" ]; then
+        echo "manual" > $rootfs/etc/init/network-manager.override
+    fi
+
+    # Use optional proxy
+    if [ ! -z "$PROXY" ]; then
+        cat <<EOF > $rootfs/etc/apt/apt.conf.d/99otto
+Acquire::http::proxy "$PROXY";
+Acquire::https::proxy "$PROXY";
+EOF
+        if ! grep -q "http_proxy" $rootfs/etc/environment; then
+            echo "http_proxy=$PROXY" >> $rootfs/etc/environment
+            echo "https_proxy=$PROXY" >> $rootfs/etc/environment
+        fi
+    fi
 
     # Disable Whoopsie
     # Apport doesn't work in LXC containers because it does not have access to

@@ -1,5 +1,5 @@
 """
-config_generate - part of the project otto
+configgenerator - part of the project otto
 """
 
 # Copyright (C) 2013 Canonical
@@ -23,18 +23,17 @@ import logging
 logger = logging.getLogger(__name__)
 import os
 
-from . import const
 from .utils import ignored
 
 
 class ConfigGenerator(object):
-    """Class that manages LXC dynamic configuration.
+    """Class that manages dynamic configurations.
 
-    We generate a rundir/config file that are going to be used by LXC"""
+    Map to an object with properties to a config file"""
 
-    def __init__(self, rundir):
+    def __init__(self, config_file):
 
-        self._config_file = os.path.join(rundir, "config")
+        self._config_file = config_file
 
         # if exists, load old parameters
         self._loading_from_file = False
@@ -74,7 +73,8 @@ class ConfigGenerator(object):
                     continue
                 (key, value) = (results[0].strip().lower(), results[1].strip())
                 setattr(self, key, value)
-        logger.debug("Loaded previous config file. Values are {}.".format(self.get_config()))
+        logger.debug("Loaded previous config for {}. Values are {}.".format(filepath,
+                                                                            self.get_config()))
         self._loading_from_file = False
 
     def get_config(self):

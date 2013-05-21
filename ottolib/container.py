@@ -174,8 +174,8 @@ class Container(object):
         return 0 if not self.running else 1
 
     def _refreshconfig(self):
-        """Force recreate a new config object attached to the content in run/config"""
-        self.config = ConfigGenerator(self.rundir)
+        """Force recreate new config objects attached to the content of generated config"""
+        self.config = ConfigGenerator(os.path.join(self.rundir, const.CONFIG_FILE))
 
     def _copy_otto_files(self):
         """Copy otto files from trunk to container
@@ -234,6 +234,15 @@ class Container(object):
                     shutil.rmtree(candidate)
                 except NotADirectoryError:
                     os.remove(candidate)
+
+    def setup_local_config(self, file_path):
+        """Setup a custom local config"""
+        shutil.copy(file_path, os.path.join(self.rundir, const.LOCAL_CONFIG_FILE))
+
+    def remove_local_config(self):
+        """Delete previously installed local config"""
+        with ignored(OSError):
+            os.remove(os.path.join(self.rundir, const.LOCAL_CONFIG_FILE))
 
     def remove_delta(self):
         """Delete delta content from latest run"""

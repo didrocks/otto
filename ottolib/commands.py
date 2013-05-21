@@ -93,6 +93,12 @@ class Commands(object):
         pstart.add_argument("-r", "--restore",
                             default=None,
                             help="Restore a previous the run state from an archive")
+        pstart.add_argument("--local-config",
+                            default=None,
+                            help="Use a local configuration file. This one will be reuse until you specify --no-local-config")
+        pstart.add_argument("--no-local-config", action='store_true',
+                            default=None,
+                            help="Remove previously used local configuration file.")
         pstart.add_argument('-D', '--force-disconnect', action='store_true',
                             default=False,
                             help="Forcibly shutdown lightdm even if a session "
@@ -232,6 +238,16 @@ class Commands(object):
         if custom_installation is not None:
             if not self.container.install_custom_installation(custom_installation):
                 return 1
+
+        # local configuration handling
+        if self.args.local_config:
+            try:
+                self.container.setup_local_config(self.args.local_config)
+            except OSError as e:
+                logger.error("Local config file provided errored out: {}".format(e))
+                sys.exit(1)
+        elif self.args.no_local_config:
+            self.container.remove_local_config()
 
         # get iso infos and manage delta
         (isoid, release, arch) = self._extract_cd_info(isomount)
