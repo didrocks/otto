@@ -1,0 +1,3 @@
+APT_ARCHIVE=http://fr.archive.ubuntu.com/ubuntu/
+DISABLE_NETWORK_MANAGER=FALSE
+PROXY=http://proxy.my.host:3128
