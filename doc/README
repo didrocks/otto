@@ -25,7 +25,8 @@ On Ubuntu 13.04 (Raring Ringtail) or newer release:
 
   * branch otto from launchpad
 
-    $ bzr branch lp:otto $ cd otto
+    $ bzr branch lp:otto
+    $ cd otto
 
   * Try to run otto:
     $ sudo bin/otto --help
@@ -46,9 +47,9 @@ On Ubuntu 13.04 (Raring Ringtail) or newer release:
   * Test by copying one iso and start otto
 
     $ cd ..  
-    $ mkdir iso 
+    $ mkdir iso; cd iso
     $ zsync http://releases.ubuntu.com/raring/ubuntu-13.04-server-amd64.iso.zsync 
-    $ sudo bin/otto -d start raring-auto -i /home/ubuntu/iso/raring-desktop-amd64.iso
+    $ sudo bin/otto -d start raring-auto -i raring-desktop-amd64.iso
 
 -> check that everything is started normally
 
@@ -58,7 +59,7 @@ On Ubuntu 13.04 (Raring Ringtail) or newer release:
 -> the same container should restart
 
 (Note: if there is a black screen and the session doesn't start then run stop
-and start again this is a bug we are investigating)
+and start again; this is a bug we are investigating)
 
     $ sudo bin/otto -d stop raring-auto 
     $ sudo bin/otto -d start raring-auto \
