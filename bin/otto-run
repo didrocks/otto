@@ -166,7 +166,6 @@ tail_logs() {
     #
     # $@ List of log files
     for log in $@; do
-        [ -z "$log" ] && continue
         tail -F $LXCROOT/$log &
         # Append to the list of children processes for later cleanup
         CPIDS="$CPIDS $!"  
@@ -204,6 +203,27 @@ write_file_from_var() {
     shift
     echo "$@" | tr [:blank:] "\n" > "$dst"
 }
+
+run_hook() {
+    # Runs a testsuite hook
+    #
+    # $1: Hook name
+    [ $# -eq 0 ] && return
+    hook=$TESTHOOKS/$1
+    shift
+    
+    if [ -x "$hook" ]; then
+        echo "I: Executing test hook '$hook'"
+        $hook $@
+        RET=$?
+        if [ $RET -gt 0 ]; then
+            echo "E: Hook '$hook' failed with code $RET. Aborting!"
+            RC=$ETESTHOOKFAILED
+            exit 
+        fi
+    fi
+}
+
 SHORTOPTS="hd"
 LONGOPTS="help,debug"
 
@@ -280,22 +300,12 @@ write_file_from_var "$TESTPATH/packages/custom.repo" "$TESTREPOS"
 write_file_from_var "$TESTPATH/packages/custom.pkgs" "$TESTPKGS"
 write_file_from_var "$TESTPATH/packages/custom.pkgs.nodeps" "$TESTPKGSNODEPS"
 
-
 if [ -f "$TESTCONFIG" ]; then
     echo "I: Loading test configuration from $TESTCONFIG"
     . $TESTCONFIG
 fi
 
-if [ -x "$TESTHOOKS/setup" ]; then
-    echo "I: Executing test hook '$TESTHOOKS/setup'"
-    $TESTHOOKS/setup
-    RET=$?
-    if [ $RET -gt 0 ]; then
-        echo "E: Hook '$TESTHOOKS/setup' failed with code $RET. Aborting!"
-        RC=$ETESTHOOKFAILED
-        exit 
-    fi
-fi
+run_hook "setup" $TESTPATH
 
 if ! start_container $CONTAINER $ISOPATH $TESTPATH; then
     echo "E: Container '$CONTAINER' failed to start. Exiting!"

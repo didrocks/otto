@@ -1,3 +1,24 @@
+#!/bin/sh -eu
+#
 # Customize the test tree _before_ the container starts and the
 # testsuite directory is copied to $rootfs
-echo "Hello $0"
+echo "I: Executing $0"
+
+if [ $# -eq 0 ]; then
+    echo "W: Testsuite path not found. Setup skipped!"
+    exit 0
+fi
+
+TESTPATH=$1
+
+if [ ! -d "$TESTPATH" ]; then
+    echo "W: Testsuite path '$TESTPATH' not found. Setup skipped!"
+    exit 0
+fi
+
+TESTSUITES=$TESTPATH/target-override/var/local/autopilot/testsuites
+mkdir -p $(dirname $TESTSUITES)
+# $TESTS is passed in the environment
+TESTS="${TESTS:-}"
+echo "$TESTS" > $TESTSUITES
+

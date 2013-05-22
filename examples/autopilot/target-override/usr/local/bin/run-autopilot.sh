@@ -21,12 +21,16 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
+exec 2>&1
+
 TESTBASE=/var/local/autopilot/
 AP_ARTIFACTS=$TESTBASE/results/artifacts
 AP_RESULTS=$TESTBASE/results/tests
 AP_OPTS="-v -r -rd $AP_ARTIFACTS -f xml"
+AP_TESTSUITES=$TESTBASE/testsuites
 
-[ -f /etc/default/tests/config ] && . /etc/default/tests/config
+# Define general configuration files 
+[ -f $TESTBASE/config ] && . $TESTBASE/config
 
 SPOOLDIR=$TESTBASE/spool
 
@@ -43,21 +47,30 @@ setup_tests() {
     mkdir -p $SPOOLDIR $AP_ARTIFACTS $AP_RESULTS
     
     # Test Only - Generate a subset of tests to run
-    for testsuite in $(autopilot list unity.tests.launcher | grep -E '^ (\*[0-9]+|\s*)? '| sed -e 's/ \(.*\)\? //'|cut -d'.' -f3|sort -u); do
-        touch $SPOOLDIR/$testsuite
-    done
+    #for testsuite in $(autopilot list unity.tests.launcher | grep -E '^ (\*[0-9]+|\s*)? '| sed -e 's/ \(.*\)\? //'|cut -d'.' -f3|sort -u); do
+    #    touch $SPOOLDIR/$testsuite
+    #done
+    if [ -e "$AP_TESTSUITES" ]; then
+        (cd $SPOOLDIR; touch $(cat $AP_TESTSUITES))
+    fi
     touch $flag
 }
 
 run_tests() {
     # Runs all the tests in spooldir
-    if [ "$(ls  $SPOOLDIR 2>/dev/null)" ]; then
-        testname="$(ls $SPOOLDIR/ 2>/dev/null|head -1)"
-        autopilot run $testname $AP_OPTS -o $AP_RESULTS/$testname.xml
-        rm -f $SPOOLDIR/$testname
-    else
-        echo "I: No test to run. Shutting down"
+    #
+    # $1: Spool directory
+    spooldir=$1
+    if [ ! -d $spooldir ]; then
+        echo "E: '$spooldir is not a directory. Exiting!"
+        exit 1
     fi
+
+    for testfile in $(ls $spooldir/ 2>/dev/null); do
+        testname=$(basename $testfile)
+        autopilot run $testname $AP_OPTS -o $AP_RESULTS/$testname.xml
+        rm -f $testfile
+    done
 }
 
 setup_tests
