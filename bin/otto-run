@@ -85,7 +85,8 @@ $msg_as_root
     TESTPATH: Path to a directory containing the testsuite.
 
 Options:
-    -h, --help  This help
+    -h, --help      This help
+    -d, --debug     Enable debug mode
 
 EOF
     exit 1
