@@ -23,10 +23,11 @@
 exec 2>&1
 
 TESTBASE=/var/local/autopilot/
-AP_ARTIFACTS=$TESTBASE/results/artifacts
-AP_RESULTS=$TESTBASE/results/tests
-AP_OPTS="-v -r -rd $AP_ARTIFACTS -f xml"
+AP_ARTIFACTS=$TESTBASE/artifacts/
+AP_RESULTS=$TESTBASE/results/
 AP_TESTSUITES=$TESTBASE/testsuites
+AP_LOG=$TESTBASE/autopilot.log
+AP_OPTS="-v -r -rd $AP_ARTIFACTS -f xml"
 
 # Define general configuration files 
 [ -f $TESTBASE/config ] && . $TESTBASE/config
@@ -71,7 +72,7 @@ run_tests() {
         testname=$(basename $testfile)
         # We don't want to fail if AP fail but we want the return code
         set +e  
-        autopilot run $testname $AP_OPTS -o $AP_RESULTS/$testname.xml
+        autopilot run $AP_OPTS -o $AP_RESULTS/$testname.xml $testname 2>&1 |tee $AP_LOGFILE
         AP_RC=$?
         set -e
         sudo rm -f $testfile
