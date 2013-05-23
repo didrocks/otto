@@ -28,7 +28,7 @@
 RC=0  # Main return code
 BINDIR=$(dirname $0)
 OTTOCMD=$BINDIR/otto
-RESULTPATH=${RESULTPATH:-/tmp/otto_results.$(date +%s)/}
+RESULTSDIR=${RESULTSDIR:-/tmp/otto_results.$(date +%s)/}
 LXCBASE=/var/lib/lxc/
 
 # Used to copy and customize the testsuite and let the original source tree
@@ -46,7 +46,7 @@ CPIDS=""  # PIDs of background commands
 # environment
 #
 START_TIMEOUT=${START_TIMEOUT:-30}  # Timeout before a container starts
-TEST_TIMEOUT=${TEST_TIMEOUT:-30}  # Timeout before considering a test failed
+TEST_TIMEOUT=${TEST_TIMEOUT:-3600}  # Timeout before considering a test failed
 LOGFILES="${LOGFILES:-}"
 ARTIFACTS="${ARTIFACTS:-}"
 TESTREPOS="${TESTREPOS:-}"
@@ -324,4 +324,4 @@ if [ $RET -gt 0 ]; then
     $OTTOCMD $OTTOOPTS stop $CONTAINER
 fi
 
-collect_results $RESULTPATH $LOGFILES $ARTIFACTS
+collect_results $RESULTSDIR $LOGFILES $ARTIFACTS
