@@ -80,7 +80,7 @@ run_tests() {
 
     if [ ! "$(ls -A $spooldir/)" ]; then
         echo "I: No test left to run"
-        sudo shutdown -h now 
+        sudo shutdown -h +1
     fi
 }
 
