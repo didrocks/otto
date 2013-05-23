@@ -20,7 +20,6 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-
 exec 2>&1
 
 TESTBASE=/var/local/autopilot/
@@ -40,11 +39,13 @@ setup_tests() {
 
     [ -e "$flag" ] && return 0
 
-    # Disable notifications
+    # Disable notifications and screensaver
     gsettings set com.ubuntu.update-notifier show-apport-crashes false
+    gsettings set org.gnome.desktop.screensaver idle-activation-enabled false
 
     # Loads the list of test and queue them in test spool
-    mkdir -p $SPOOLDIR $AP_ARTIFACTS $AP_RESULTS
+    sudo mkdir -p $SPOOLDIR $AP_ARTIFACTS $AP_RESULTS
+    sudo chown $USER:$USER $SPOOLDIR $AP_ARTIFACTS $AP_RESULTS
     
     # Test Only - Generate a subset of tests to run
     #for testsuite in $(autopilot list unity.tests.launcher | grep -E '^ (\*[0-9]+|\s*)? '| sed -e 's/ \(.*\)\? //'|cut -d'.' -f3|sort -u); do
@@ -71,6 +72,11 @@ run_tests() {
         autopilot run $testname $AP_OPTS -o $AP_RESULTS/$testname.xml
         rm -f $testfile
     done
+
+    if [ ! "$(ls -A $spooldir/)" ]; then
+        echo "I: No test left to run"
+        shutdown -h now 
+    fi
 }
 
 setup_tests
