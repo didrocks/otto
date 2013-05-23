@@ -27,12 +27,12 @@ AP_ARTIFACTS=$TESTBASE/artifacts/
 AP_RESULTS=$TESTBASE/results/
 AP_TESTSUITES=$TESTBASE/testsuites
 AP_LOGFILE=$TESTBASE/autopilot.log
+SPOOLDIR=$TESTBASE/spool
 AP_OPTS="-v -r -rd $AP_ARTIFACTS -f xml"
 
 # Define general configuration files 
 [ -f $TESTBASE/config ] && . $TESTBASE/config
 
-SPOOLDIR=$TESTBASE/spool
 
 setup_tests() {
     # Prepares the environment for the tests
@@ -46,7 +46,7 @@ setup_tests() {
 
     # Loads the list of test and queue them in test spool
     sudo mkdir -p $SPOOLDIR $AP_ARTIFACTS $AP_RESULTS
-    sudo chown $USER:$USER $SPOOLDIR $AP_ARTIFACTS $AP_RESULTS
+    sudo chown $USER:$USER $TESTBASE $SPOOLDIR $AP_ARTIFACTS $AP_RESULTS
     
     # Test Only - Generate a subset of tests to run
     #for testsuite in $(autopilot list unity.tests.launcher | grep -E '^ (\*[0-9]+|\s*)? '| sed -e 's/ \(.*\)\? //'|cut -d'.' -f3|sort -u); do
