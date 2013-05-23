@@ -39,7 +39,6 @@ CONTAINER=""
 TESTPATH=""
 ISOPATH=""
 OTTOOPTS=""
-CPIDS=""  # PIDs of background commands
 
 # 
 # These parameters can be overridden in testsuite configuration file or the
@@ -95,9 +94,7 @@ EOF
 on_exit() {
     # Exit handler
 
-    # Clean-up tails started in background
-    [ -n "$CPIDS" ] && kill $CPIDS
-
+    # Cleanup temporary directories
     #[ -d "$TESTTMP" ] && rm -Rf "$TESTTMP"
     exit $RC
 }
@@ -165,9 +162,7 @@ tail_logs() {
     #
     # $@ List of log files
     for log in $@; do
-        tail -F $LXCROOT/$log &
-        # Append to the list of children processes for later cleanup
-        CPIDS="$CPIDS $!"  
+        tail -F --pid=$$ $LXCROOT/$log | awk -v logfile="$log" '{print logfile":",$0}' &
     done
 }
 

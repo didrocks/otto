@@ -67,15 +67,19 @@ run_tests() {
         exit 1
     fi
 
-    for testfile in $(ls $spooldir/ 2>/dev/null); do
+    for testfile in $(ls -d $spooldir/* 2>/dev/null); do
         testname=$(basename $testfile)
+        # We don't want to fail if AP fail but we want the return code
+        set +e  
         autopilot run $testname $AP_OPTS -o $AP_RESULTS/$testname.xml
-        rm -f $testfile
+        AP_RC=$?
+        set -e
+        sudo rm -f $testfile
     done
 
     if [ ! "$(ls -A $spooldir/)" ]; then
         echo "I: No test left to run"
-        shutdown -h now 
+        sudo shutdown -h now 
     fi
 }
 

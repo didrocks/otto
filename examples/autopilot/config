@@ -1,2 +1,2 @@
-#LOGFILES="/var/log/syslog /home/ubuntu/.xsession-errors"
-ARTIFACTS="/home/ubuntu"
+LOGFILES="/var/log/syslog /home/ubuntu/.xsession-errors /var/log/upstart/packages.log"
+ARTIFACTS="/home/ubuntu /var/local/autopilot"
