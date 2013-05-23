@@ -74,4 +74,4 @@ run_tests() {
 }
 
 setup_tests
-run_tests
+run_tests $SPOOLDIR

@@ -1,4 +1,4 @@
-#!/bin/sh -ux
+#!/bin/sh -u
 
 #
 # Runner for Otto
@@ -94,7 +94,6 @@ EOF
 
 on_exit() {
     # Exit handler
-    echo "I: Killing subprocesses"
 
     # Clean-up tails started in background
     [ -n "$CPIDS" ] && kill $CPIDS
@@ -201,6 +200,7 @@ write_file_from_var() {
 
     dst="$1"
     shift
+    mkdir -p $(dirname $dst)
     echo "$@" | tr [:blank:] "\n" > "$dst"
 }
 
@@ -290,7 +290,8 @@ if [ ! -d "$TESTPATH" ]; then
     RC=$ETESTNOTFOUND
     exit
 fi
-rsync -aH $TESTPATH $TESTTMP/
+TP="$(dirname $TESTPATH)/$(basename $TESTPATH)"  # Strip trailing /
+rsync -aH $TP $TESTTMP/
 TESTPATH="$TESTTMP/$(basename $TESTPATH)"
 TESTCONFIG=$TESTPATH/config
 TESTHOOKS=$TESTPATH/hooks
