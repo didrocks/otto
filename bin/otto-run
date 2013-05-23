@@ -28,7 +28,7 @@
 RC=0  # Main return code
 BINDIR=$(dirname $0)
 OTTOCMD=$BINDIR/otto
-RESULTPATH=/tmp/otto_results/
+RESULTPATH=${RESULTPATH:-/tmp/otto_results.$(date +%s)/}
 LXCBASE=/var/lib/lxc/
 
 # Used to copy and customize the testsuite and let the original source tree
