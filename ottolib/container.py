@@ -46,6 +46,8 @@ class Container(object):
         self.guestpath = os.path.join(const.LXCBASE, name)
         self.rundir = os.path.join(self.guestpath, const.RUNDIR)
 
+        self.arch = utils.host_arch()
+
         # Create root tree
         if create:
             if os.path.exists(self.guestpath):
@@ -161,7 +163,9 @@ class Container(object):
             raise ContainerError("The container didn't stop successfully")
 
     def _refreshconfig(self):
-        """Force recreate new config objects attached to the content of generated config"""
+        """Force recreate new config objects attached to the content of
+           generated config
+        """
         self.config = ConfigGenerator(os.path.join(self.rundir, const.CONFIG_FILE))
 
     def _copy_otto_files(self):
@@ -175,7 +179,12 @@ class Container(object):
         with open(os.path.join(lxcdefaults, "config"), 'r') as fin:
             with open(os.path.join(self.guestpath, "config"), 'w') as fout:
                 for line in fin:
-                    fout.write(line.replace("${NAME}", self.name))
+                    lineout = line
+                    if "${NAME}" in line:
+                        lineout = line.replace("${NAME}", self.name)
+                    elif "${ARCH}" in line:
+                        lineout = line.replace("${ARCH}", self.arch)
+                    fout.write(lineout)
 
         shutil.copy(os.path.join(lxcdefaults, "fstab"), self.guestpath)
 
@@ -205,8 +214,8 @@ class Container(object):
 
         self.remove_custom_installation()
         for candidate in os.listdir(path):
-            src=os.path.join(path, candidate)
-            dst=os.path.join(self.rundir, candidate)
+            src = os.path.join(path, candidate)
+            dst = os.path.join(self.rundir, candidate)
             if os.path.isdir(src):
                 shutil.copytree(src, dst)
             else:

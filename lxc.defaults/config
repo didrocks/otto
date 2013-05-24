@@ -17,7 +17,7 @@ lxc.tty = 4
 lxc.pts = 1024
 
 lxc.utsname = ${NAME}
-lxc.arch = amd64
+lxc.arch = ${ARCH}
 lxc.cap.drop = sys_module mac_admin mac_override
 
 # When using LXC with apparmor, uncomment the next line to run unconfined:

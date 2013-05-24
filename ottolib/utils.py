@@ -257,6 +257,20 @@ def get_base_dir():
         return os.path.join("/", "usr", "share", "otto")
 
 
+def host_arch():
+    """ Returns host architecture like dpkg --print-architecture
+
+    @return: arch
+    """
+    try:
+        arch = subprocess.check_output(["dpkg", "--print-architecture"])
+        return arch.decode().strip()
+    except subprocess.CalledProcessError as cpe:
+        logging.error("dpkg call failed with status %d:\n{}".format(
+            cpe.returncode, cpe.output))
+        return None
+
+
 # this is stole from python 3.4 :)
 @contextmanager
 def ignored(*exceptions):
