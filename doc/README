@@ -37,6 +37,20 @@ On Ubuntu 13.04 (Raring Ringtail) or newer release:
     $ sudo apparmor_parser -R /etc/apparmor.d/usr.bin.lxc-start
     $ sudo ln -s /etc/apparmor.d/usr.bin.lxc-start /etc/apparmor.d/disable/
 
+== Integration with Jenkins ==
+  * Declare the node jenkins server (use the same name than hostname by
+    default)
+  * install jenkins-slave
+    $ sudo apt-get install --no-install-recommends jenkins-slave
+  * Add user 'jenkins' to /etc/sudoers
+  * Edit jenkins-slave configuration in /etc/default/jenkins-slave and set the
+    URL of the server. You can also set the name of the slave if you do not
+    want to use the default (hostname)
+  * Then start the slave
+    $ sudo start jenkins-slave
+  * Verify that the node becomes online on the server.
+  * Follow the steps described in the previous section (Installation) as user
+    'jenkins' instead of 'ubuntu'.
 
 = Running Otto =
 
