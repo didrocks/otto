@@ -317,6 +317,9 @@ fi
 lxc-wait -q -n $CONTAINER -s STOPPED -t $TEST_TIMEOUT
 RET=$?
 
+ARCHIVE_FILE=$(ls -Art $LXCBASE/$CONTAINER/archive/ | tail -n 1)
+echo "Run archived as $ARCHIVE_FILE"
+
 if [ $RET -gt 0 ]; then
     echo "E: Test failed to run in $TEST_TIMEOUT seconds. Aborting!"
     $OTTOCMD $OTTOOPTS stop $CONTAINER
