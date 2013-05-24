@@ -152,7 +152,7 @@ start_container() {
     iso="$2"
     testdir="$3"
 
-    $OTTOCMD $OTTOOPTS start $name -i $iso -C $testdir
+    $OTTOCMD $OTTOOPTS start $name --archive -i $iso -C $testdir
 
     lxc-wait -q -n $name -s RUNNING -t $START_TIMEOUT
     return $?
@@ -186,7 +186,6 @@ collect_results() {
 
     user=${SUDO_USER:-$USER}
     chown -R $user:$user "$rdest"
-
 }
 
 write_file_from_var() {
