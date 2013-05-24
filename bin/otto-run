@@ -184,6 +184,9 @@ collect_results() {
         fi
     done
 
+    user=${SUDO_USER:-$USER}
+    chown -R $user:$user "$rdest"
+
 }
 
 write_file_from_var() {
