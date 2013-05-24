@@ -62,7 +62,7 @@ On Ubuntu 13.04 (Raring Ringtail) or newer release:
 
     $ cd ..  
     $ mkdir iso; cd iso
-    $ zsync http://releases.ubuntu.com/raring/ubuntu-13.04-server-amd64.iso.zsync 
+    $ zsync http://releases.ubuntu.com/raring/ubuntu-13.04-desktop-amd64.iso.zsync 
     $ sudo bin/otto -d start raring-auto -i raring-desktop-amd64.iso
 
 -> check that everything is started normally
@@ -82,6 +82,13 @@ and start again; this is a bug we are investigating)
 
 -> If packages failed to install the logs are located in
 /var/log/upstart/packages.log
+
+= Additional Notes =
+
+* nVidia: By default nvidia uses nouveau. To install the proprietary driver
+  from the package 'nvidia-current' you'll to enable (or add if it doesn't
+  exists) the component 'restricted' in /etc/apt/sources.list on the host and
+  the guest
   
 = Origin of the name =
 This tool has originally been written to replace UTAH [1] to run autopilot [2]
