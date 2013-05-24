@@ -322,4 +322,8 @@ if [ $RET -gt 0 ]; then
     $OTTOCMD $OTTOOPTS stop $CONTAINER
 fi
 
+# We always want this directory
+collect_results $RESULTSDIR /var/local/otto
+
+# Artifacts created by the run
 collect_results $RESULTSDIR $LOGFILES $ARTIFACTS
