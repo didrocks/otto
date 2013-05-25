@@ -95,6 +95,16 @@ EOF
 on_exit() {
     # Exit handler
 
+    if container_is_running $CONTAINER; then
+        echo -n "I: Stopping container '$CONTAINER'... "
+        $OTTOCMD $OTTOOPTS stop $CONTAINER
+        lxc-wait -q -n $CONTAINER -s STOPPED -t 60
+        if container_is_running $CONTAINER; then
+            echo "failed to stop after 60s"
+        else
+            echo "stopped"
+        fi
+    fi
     # Cleanup temporary directories
     #[ -d "$TESTTMP" ] && rm -Rf "$TESTTMP"
     exit $RC
