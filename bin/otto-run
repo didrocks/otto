@@ -68,7 +68,7 @@ ECONTAINERSTARTFAILED=22
 # Test errors
 ETESTNOTFOUND=30
 ETESTHOOKFAILED=31
-
+ETESTFAILED=32
 
 usage() {
     msg_as_root=""
@@ -198,6 +198,31 @@ collect_results() {
     chown -R $user:$user "$rdest"
 }
 
+check_results() {
+    # Check if one of the mandatory step failed. There are 2 supported steps at
+    # the moment: packages and timeout
+    #
+    # $1: Path to summary file
+    if [ $# -eq 0 ]; then
+        echo "W: No summary file provided!"
+        return 0
+    fi
+
+    summary="$1"
+    if [ ! -f "$summary" ]; then
+        echo "W: Summary file '$summary' not found!"
+        return 0
+    fi
+
+    if grep -q "packages: FAIL" "$summary"; then
+        echo "E: Packages failed to install!"
+        return 1
+    elif grep -q "timeout: FAIL" "$summary"; then
+        echo "E: Test timeout!"
+        return 1
+    fi
+    return 0
+}
 write_file_from_var() {
     # Split an environment variable per words (space delimited) and write it
     # to a file. This is essentially use to create packages and ppas lists
@@ -333,10 +358,15 @@ echo "Run archived as $ARCHIVE_FILE"
 if [ $RET -gt 0 ]; then
     echo "E: Test failed to run in $TEST_TIMEOUT seconds. Aborting!"
     $OTTOCMD $OTTOOPTS stop $CONTAINER
+    echo "timeout: FAIL" >> $LXCROOT/var/local/otto/summary.log
 fi
+echo "timeout: PASS" >> $LXCROOT/var/local/otto/summary.log
 
 # We always want this directory
 collect_results $RESULTSDIR /var/local/otto
-
 # Artifacts created by the run
 collect_results $RESULTSDIR $LOGFILES $ARTIFACTS
+
+if ! check_results $RESULTSDIR/otto/summary.log; then
+    RC=$ETESTFAILED
+fi
