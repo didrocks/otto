@@ -186,7 +186,17 @@ class Container(object):
                         lineout = line.replace("${ARCH}", self.arch)
                     fout.write(lineout)
 
-        shutil.copy(os.path.join(lxcdefaults, "fstab"), self.guestpath)
+        dri_exists = os.path.exists("/dev/dri")
+        with open(os.path.join(lxcdefaults, "fstab"), 'r') as fin:
+            with open(os.path.join(self.guestpath, "fstab"), 'w') as fout:
+                for line in fin:
+                    if line.startswith("/dev/dri") and not dri_exists:
+                        lineout = "# /dev/dri not found, entry disabled (do "
+                        "you use nvidia or fglrx graphics drivers?)\n"
+                        lineout += "#" + line
+                    else:
+                        lineout = line
+                    fout.write(lineout)
 
         src = os.path.join(lxcdefaults, "scripts")
         dst = os.path.join(self.guestpath, "scripts")
