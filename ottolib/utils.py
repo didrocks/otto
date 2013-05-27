@@ -271,6 +271,36 @@ def host_arch():
         return None
 
 
+def find_vga_device():
+    """ Find VGA device on the host. lspci is used to collect information
+    about devices on the host. It populates a dictionary with the devices
+    specifications.
+
+    @return: A dicto containing device information
+    """
+    cmd = ['lspci', '-knnvmm']
+    try:
+        lspci_out = subprocess.check_output(cmd)
+    except subprocess.CalledProcessError as cpe:
+        logger.warning("lspci call failed with {}".format(cpe))
+        return None
+
+    device_info = {}
+    graphics_card = None
+    for line in lspci_out.decode().split('\n'):
+        if line.strip():
+            (tag, value) = line.split(':', 1)
+            device_info[tag] = value.strip()
+        elif device_info:
+            if "Class" in device_info:
+                if device_info["Class"].endswith("[0300]"):
+                    graphics_card = dict(device_info)
+                    break
+            device_info = {}
+    logging.debug("Found graphics card {}".format(graphics_card))
+    return graphics_card
+
+
 # this is stole from python 3.4 :)
 @contextmanager
 def ignored(*exceptions):
