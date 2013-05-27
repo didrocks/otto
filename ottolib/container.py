@@ -187,12 +187,14 @@ class Container(object):
                     fout.write(lineout)
 
         dri_exists = os.path.exists("/dev/dri")
+        vga_device = utils.find_vga_device()
         with open(os.path.join(lxcdefaults, "fstab"), 'r') as fin:
             with open(os.path.join(self.guestpath, "fstab"), 'w') as fout:
                 for line in fin:
                     if line.startswith("/dev/dri") and not dri_exists:
-                        lineout = "# /dev/dri not found, entry disabled (do "
-                        "you use nvidia or fglrx graphics drivers?)\n"
+                        lineout = "# /dev/dri not found, entry disabled ("\
+                                "do you use nvidia or fglrx graphics "\
+                                "drivers?)\n"
                         lineout += "#" + line
                     else:
                         lineout = line
@@ -212,6 +214,22 @@ class Container(object):
         with ignored(OSError):
             shutil.rmtree(dst)
         shutil.copytree(src, dst)
+
+        # Some graphics need a proprietary driver
+        # driver -> packages to install
+        drivers = {
+            "fglrx": "fglrx",
+            "nvidia": "nvidia-current"
+        }
+        if vga_device is not None and "Driver" in vga_device:
+            if vga_device["Driver"] in drivers:
+                logging.info("Installation additional drivers for graphics "
+                             "card {}".format(vga_device["Device"]))
+                # l-h-g must be installed to compile additional modules
+                pkgs = "linux-headers-generic {}\n".format(
+                    drivers[vga_device["Driver"]])
+                with open(os.path.join(dst, "/var/local/otto/00drivers.pkgs"), 'w') as fpkgs:
+                    fpkgs.write(pkgs)
 
     def install_custom_installation(self, path):
         """Install a new custom installation, removing previous one if present.
