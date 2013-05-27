@@ -223,12 +223,17 @@ class Container(object):
         }
         if vga_device is not None and "Driver" in vga_device:
             if vga_device["Driver"] in drivers:
-                logging.info("Installation additional drivers for graphics "
+                logging.info("Installing additional drivers for graphics "
                              "card {}".format(vga_device["Device"]))
                 # l-h-g must be installed to compile additional modules
                 pkgs = "linux-headers-generic {}\n".format(
                     drivers[vga_device["Driver"]])
-                with open(os.path.join(dst, "/var/local/otto/00drivers.pkgs"), 'w') as fpkgs:
+                pkgsdir = os.path.join(self.guestpath, "guest", "var/local/otto/")
+                if not os.path.exists(pkgsdir):
+                    os.makedirs(pkgsdir)
+                with open(os.path.join(pkgsdir, "00drivers.pkgs"), 'w') as fpkgs:
+                    logging.debug("Custom drivers written to {}".format(
+                        os.path.join(pkgsdir, "00drivers.pkgs")))
                     fpkgs.write(pkgs)
 
     def install_custom_installation(self, path):
