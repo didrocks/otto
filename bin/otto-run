@@ -136,6 +136,7 @@ container_is_running() {
     #
     # $1 : Name of the container
     # @return: 0 if running 1 otherwise
+    [ $# -eq 0 ] && return 1
     lxc-info -n $1 -t RUNNING 2>/dev/null
     return $?
 }
