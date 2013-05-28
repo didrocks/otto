@@ -33,6 +33,7 @@ This script downloads an Ubuntu Desktop ISO from the given URL for the release
 and architecture matching the host system.  Then the system is upgraded and
 rebooted.
 EOF
+    exit 1
 fi
 
 echo -n "WARNING: This script will update and reboot your system. You have 10s to
