@@ -23,7 +23,11 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-if [ $# -eq 0 ]; then
+RELEASE=$(lsb_release -sc)
+RC=0
+
+usage() {
+    # Display usage information
     cat <<EOF
 Usage: $(basename $0) BASEURL
 This script is intended to be run from Jenkins on a test machine, DO NOT RUN
@@ -32,10 +36,71 @@ it on your machine.
 This script downloads an Ubuntu Desktop ISO from the given URL for the release
 and architecture matching the host system.  Then the system is upgraded and
 rebooted.
+
 EOF
     exit 1
-fi
+}
 
+dl_image() {
+    # Download a disk image from a base download URL
+    #
+    # $1: Base download url (e.g cdimage.ubuntu.com/daily-live/current)
+
+    [ $# -eq 0 ] && return 1
+    baseurl=$1
+    isoname=$RELEASE-desktop-$(dpkg --print-architecture ).iso
+    isodir=$HOME/iso/ubuntu
+    name=${JOB_NAME:-$(basename $0)}
+    isotmp=$(mktemp $(echo $JOB_NAME|tr '/' '_').XXXXXX)
+    devrelease=$(distro-info -d)
+
+    src=$baseurl/$isoname
+    dst=$isodir/$isoname
+    # Do not re-download the same image for stable releases but always
+    # download dev release images
+    if [ "$devrelease" = "$RELEASE" -o ! -f "$dst" ]; then
+        mkdir -p $isodir
+        echo "Downloading $src to $isotmp"
+        wget --progress=dot:mega $src -O $isotmp
+        if [ -f "$isotmp" ]; then
+            mv $isotmp $dst
+        else
+            echo "E: $src failed to download!"
+            return 1
+        fi
+    fi
+    return 0
+}
+
+update_system() {
+    # Installs updates on the system
+    # 
+    # @return: 0 on success, 1 on failure
+
+    delay=30
+    DEBIAN_FRONTEND=noninteractive
+    sudo apt-get update
+    ret=$?
+    [ $ret -gt 0 ] && return $ret
+
+    # On stable releases there is no really need to reboot every day, only on
+    # kernel, drivers and few other packages upgrades 
+    if apt-get --simulate dist-upgrade | grep ^Inst; then
+        sudo apt-get -y dist-upgrade
+        ret=$?
+        if [ $ret -eq 0 ]; then
+            (echo "Reboot in ${delay}s"; sleep $delay; sudo reboot)&
+        fi
+    else
+        echo "I: No packages to upgrade"
+    fi
+
+    return $ret
+}
+
+[ $# -eq 0 ] && usage
+
+# Safeguard
 echo -n "WARNING: This script will update and reboot your system. You have 10s to
 press CTRL+C "
 for i in $(seq 10); do
@@ -44,28 +109,11 @@ for i in $(seq 10); do
 done
 echo
 
-RELEASE=$(lsb_release -sc)
-BASEURL=$1
+dl_image "$1/iso/$RELEASE/"
+RC=$?
 
-ISONAME=$RELEASE-desktop-$(dpkg --print-architecture ).iso
-ISODIR=$HOME/iso/ubuntu
-ISOTMP=$(mktemp $(echo $JOB_NAME|tr '/' '_').XXXXXX)
+update_system
+RET=$?
+[ $RET -ne 0 ] && RC=$RET
 
-SRC=$BASEURL/iso/$RELEASE/$ISONAME
-DST=$ISODIR/$ISONAME
-mkdir -p $ISODIR
-echo "Downloading $SRC to $ISOTMP"
-wget --progress=dot:mega $SRC -O $ISOTMP
-if [ -f "$ISOTMP" ]; then
-    mv $ISOTMP $DST
-else
-    echo "E: $SRC failed to download!"
-    exit 1
-fi
-
-DEBIAN_FRONTEND=noninteractive
-sudo apt-get update  && sudo apt-get -y dist-upgrade
-
-if [ $? -eq 0 ]; then
-    (echo "Reboot in 10s"; sleep 10; sudo reboot)&
-fi
+exit $RC
