@@ -1,0 +1,66 @@
+#!/bin/sh 
+
+#
+# When jenkins start a subprocess via sudo in a shell build step, it cannot
+# kill it if the job is aborted because it is not the owner. This script
+# monitors all the children of the parent process (the shell script generated
+# by Jenkins) and kill them when it traps the exit signal.
+#
+# This script is part of the project Otto
+#
+
+# Copyright © 2013 Canonical Ltd.
+# Author: Jean-baptiste Lallement <jean-baptiste.lallement@canonical.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2, as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+INTERVAL=1  # Polling interval
+do_cleanup() {
+    # Kindly asks children processes of the main jenkins process to leave
+    echo "I: Exiting process $$"
+    sleep 2 
+    # Kill them twice but don't be nice on second try
+    for sig in 15 9; do
+        for pid in $PIDS; do
+            if [ $pid -ne $$ ]; then  # Don't kill yourself
+                if sudo kill -0 $pid 2>&1; then
+                    echo "I: Killing $pid $(ps h --pid $pid -o args)"
+                    sudo kill -$sig $pid
+                fi  
+            fi  
+        done
+        sleep 5 
+    done
+}
+trap do_cleanup EXIT INT QUIT ABRT PIPE TERM
+
+find_all_children() {
+    # Returns all the children of a given process id
+    #
+    # $1: PID
+    #
+    # @return: list of PIDs
+    [ $# -eq 0 ] && return
+    pstree -p $1 | grep -o '[0-9]\{2,6\}'
+}
+
+ppid=$PPID
+PIDS=$(find_all_children $ppid)
+while sleep $INTERVAL; do
+    PIDS=$(find_all_children $ppid)
+    if ! kill -0 $ppid 2>&1>/dev/null; then
+        echo "I: Parent process left. Bye!"
+        exit 0
+    fi
+done

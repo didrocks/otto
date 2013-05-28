@@ -264,7 +264,7 @@ LONGOPTS="help,debug"
 TEMP=$(getopt -o $SHORTOPTS --long $LONGOPTS -- "$@")
 eval set -- "$TEMP"
 
-exec 2>&1
+exec 2>&1 >/tmp/otto-run.log
 
 while true ; do
     case "$1" in
