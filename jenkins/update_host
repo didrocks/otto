@@ -25,6 +25,11 @@
 
 RELEASE=$(lsb_release -sc)
 RC=0
+OTTOCMD="otto"
+OTTOOPTS=""
+ARCH=$(dpkg --print-architecture )
+ISODIR=$HOME/iso/ubuntu
+ISONAME=$RELEASE-desktop-${ARCH}.iso
 
 usage() {
     # Display usage information
@@ -48,18 +53,16 @@ dl_image() {
 
     [ $# -eq 0 ] && return 1
     baseurl=$1
-    isoname=$RELEASE-desktop-$(dpkg --print-architecture ).iso
-    isodir=$HOME/iso/ubuntu
     name=${JOB_NAME:-$(basename $0)}
     isotmp=$(mktemp $(echo $JOB_NAME|tr '/' '_').XXXXXX)
     devrelease=$(distro-info -d)
 
-    src=$baseurl/$isoname
-    dst=$isodir/$isoname
+    src=$baseurl/$ISONAME
+    dst=$ISODIR/$ISONAME
     # Do not re-download the same image for stable releases but always
     # download dev release images
     if [ "$devrelease" = "$RELEASE" -o ! -f "$dst" ]; then
-        mkdir -p $isodir
+        mkdir -p $ISODIR
         echo "Downloading $src to $isotmp"
         wget --progress=dot:mega $src -O $isotmp
         if [ -f "$isotmp" ]; then
@@ -100,11 +103,51 @@ update_system() {
     return $ret
 }
 
+container_exists() {
+    # Checks that a container with specified name exists
+    #
+    # $1 : Name of the container
+    # @return: 0 if exists 1 otherwise
+    if lxc-ls "$1" | grep -qw "$1"; then 
+        return 0
+    else
+        return 1
+    fi
+}
+
+create_container() {
+    # Create a container with name NAME from image IMAGE
+    #
+    # $1: NAME
+    # $2: IMAGE
+    #
+    # @return: 0 on success 1 on failure
+    
+    if [ $# -ne 2 ]; then
+        echo "E: Invalid number of argument: create_container NAME IMAGE"
+        return 1
+    fi
+    if ! type -t $OTTOCMD; then
+        echo "E: Command '$OTTOCMD' not found. Container will not be created!"
+        return 2
+    fi
+    if [ ! -f "$2" ]; then
+        echo "E: File '$2' not found!"
+        return 3
+    fi
+    if container_exists $1; then
+        echo "E: Container '$1' already exists, not creating again!"
+        return 4
+    fi
+
+    echo "I: Creating container '$1' from '$2'"
+    $OTTOCMD $OTTOOPTS create -D -u $1 $2
+    return $?
+}
 [ $# -eq 0 ] && usage
 
 # Safeguard
-echo -n "WARNING: This script will update and reboot your system. You have 10s to
-press CTRL+C "
+echo -n "WARNING: This script will update and reboot your system. You have 10s to press CTRL+C "
 for i in $(seq 10); do
     echo -n "."
     sleep 1
@@ -113,6 +156,15 @@ echo
 
 dl_image "$1/iso/$RELEASE/"
 RC=$?
+
+# Only create a new container on successful download or image already up to
+# date
+if [ $RC -eq 0 ]; then
+    LXCNAME=${RELEASE}-${ARCH}-$(date +%Y%m%d-%H%M)
+    create_container $LXCNAME $ISODIR/$ISONAME
+    RET=$?
+    [ $RET -ne 0 ] && RC=$RET
+fi
 
 update_system
 RET=$?
