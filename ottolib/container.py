@@ -43,17 +43,17 @@ class Container(object):
         self.name = name
         self.container = lxc.Container(name)
         self.wait = self.container.wait
-        self.guestpath = os.path.join(const.LXCBASE, name)
-        self.rundir = os.path.join(self.guestpath, const.RUNDIR)
+        self.containerpath = os.path.join(const.LXCBASE, name)
+        self.rundir = os.path.join(self.containerpath, const.RUNDIR)
 
         self.arch = utils.host_arch()
 
         # Create root tree
         if create:
-            if os.path.exists(self.guestpath):
+            if os.path.exists(self.containerpath):
                 raise ContainerError("Container already exists. Exiting!")
         else:
-            if not os.path.isdir(self.guestpath):
+            if not os.path.isdir(self.containerpath):
                 raise ContainerError("Container {} does not exist.".format(name))
 
         self._refreshconfig()
@@ -62,7 +62,7 @@ class Container(object):
     def running(self):
         return self.container.running
 
-    def create(self):
+    def create(self, imagepath, upgrade=False, local_config=None):
         """Creates a new container
 
         This method creates a new container from scratch. We don't want to use
@@ -75,21 +75,44 @@ class Container(object):
         will be rsynced to the guest FS by the pre-mount script to install
         additional packages into the container.
 
+        It also hardlink the image path passed as parameters so that the container
+        "contains" what's needed and do an eventual container start dist-upgrade
+        to create a base delta that we'll keep in the container lifetime
+        (alongside the eventual archive)
+
         TODO:
-            - Verify that the source files exist before the copy
             - Override LXC configuration file or append new directives
             - Override default fstab or append new entries
+            - in case of failure, needs to umount iso, needs to rm the container entirely
         """
         logger.info("Creating container '%s'", self.name)
 
+        if not os.path.exists(imagepath):
+            raise ContainerError("'{}' doesn't exist. Please specify a valid image path.".format(imagepath))
+
+        # create base path a hardlink the iso
+        os.makedirs(self.containerpath)
+        container_imagepath = os.path.join(self.containerpath, os.path.basename(imagepath))
+        os.link(imagepath, container_imagepath)
+
+        self._mountiso(container_imagepath)
+
+        if local_config:
+            self.setup_local_config(local_config)
+
         # Base rootfs
-        os.makedirs(os.path.join(self.guestpath, "rootfs"))
-        # Scripts
-        os.makedirs(os.path.join(self.guestpath, "scripts"))
+        os.makedirs(os.path.join(self.containerpath, "rootfs"))
+        # Tools
+        os.makedirs(os.path.join(self.containerpath, "tools"))
         # tools and default config from otto
         self._copy_otto_files()
 
-        logger.debug("Done")
+        self.container.load_config()
+
+        if upgrade:
+            self.upgrade()
+
+        logger.debug("Creation done")
 
     def destroy(self):
         """Destroys a container
@@ -104,16 +127,31 @@ class Container(object):
             # We check that LXCBASE/NAME/config exists because if it does then
             # lxc destroy should have succeeded and the failure is elsewhere,
             # for example the container is still running
-            if os.path.isdir(self.guestpath) \
-                    and self.guestpath.startswith(const.LXCBASE) \
+            if os.path.isdir(self.containerpath) \
+                    and self.containerpath.startswith(const.LXCBASE) \
                     and not os.path.exists(
-                        os.path.join(self.guestpath, "config")):
-                shutil.rmtree(self.guestpath)
+                        os.path.join(self.containerpath, "config")):
+                shutil.rmtree(self.containerpath)
             else:
-                raise ContainerError("Path doesn't exist: {}".format(self.guestpath))
+                raise ContainerError("Path doesn't exist: {}".format(self.containerpath))
         logger.debug("Done")
 
-    def start(self):
+    def upgrade(self):
+        """Run and store a dist-upgrade in the container."""
+        self.config.basedeltadir = os.path.join(const.BASESDIR, time.strftime("base_%Y.%m.%d-%Hh%Mm%S"))
+        logger.debug("Upgrading the container to create a base in {}".format(self.config.basedeltadir))
+        basedelta = os.path.join(self.containerpath, self.config.basedeltadir)
+        os.makedirs(basedelta)
+        self.config.command = "upgrade"
+        self.start()
+        self.container.wait('STOPPED', const.UPGRADE_TIMEOUT)
+        if self.running:
+            raise ContainerError("The container didn't stop successfully")
+        self.config.command = ""
+        if os.path.isfile(os.path.join(basedelta, '.upgrade')):
+            raise ContainerError("The upgrade didn't finish successfully")
+
+    def start(self, with_delta=False):
         """Starts a container.
 
         This method refresh with starts a container and wait for START_TIMEOUT before
@@ -122,13 +160,36 @@ class Container(object):
         if self.running:
             raise ContainerError("Container '{}' already running.".format(self.name))
 
-        # ensure we have a rundir
-        with ignored(OSError):
-            os.makedirs(self.rundir)
+        self._mountiso(os.path.join(self.containerpath, self.config.image))
+        # check that the container is coherent with our deltas
+        (isoid, release, arch) = utils.extract_cd_info(self.config.isomount)
+        if self.config.command != "upgrade":
+            logger.debug("Checking that the container is compatible with the iso.")
+            if not (self.config.isoid == isoid and
+                    self.config.release == release and
+                    self.config.arch == arch):
+                raise ContainerError("Can't reuse a previous run delta: the previous run was used with "
+                             "{deltaisoid}, {deltarelease}, {deltaarch} and {imagepath} is for "
+                             "{isoid}, {release}, {arch}. config use a compatible container."
+                             "".format(deltaisoid=self.config.isoid,
+                                       deltarelease=self.config.release,
+                                       deltaarch=self.config.arch,
+                                       isoid=isoid, release=release, arch=arch,
+                                       imagepath=self.config.image))
+            if self.config.basedeltadir:
+                logger.debug("Check that the delta has a compatible base delta in the container")
+                if not os.path.isdir(os.path.join(self.containerpath, self.config.basedeltadir)):
+                    raise ContainerError("No base delta found as {}. This means that we can't reuse "
+                                         "this previous run with it. Please use a compatible container "
+                                         "or restore this base delta.".format(self.config.basedeltadir))
+        self.config.isoid = isoid
+        self.config.release = release
+        self.config.arch = arch
+
         # regenerate a new runid, even if restarting an old run
         self.config.runid = int(time.time())
 
-        self.config.archivedir = os.path.join(self.guestpath, const.ARCHIVEDIR)
+        self.config.archivedir = const.ARCHIVEDIR
 
         # tools and default config from otto
         self._copy_otto_files()
@@ -177,7 +238,7 @@ class Container(object):
         # Substitute name of the container in the configuration file.
         lxcdefaults = os.path.join(utils.get_base_dir(), "lxc.defaults")
         with open(os.path.join(lxcdefaults, "config"), 'r') as fin:
-            with open(os.path.join(self.guestpath, "config"), 'w') as fout:
+            with open(os.path.join(self.containerpath, "config"), 'w') as fout:
                 for line in fin:
                     lineout = line
                     if "${NAME}" in line:
@@ -189,7 +250,7 @@ class Container(object):
         dri_exists = os.path.exists("/dev/dri")
         vga_device = utils.find_vga_device()
         with open(os.path.join(lxcdefaults, "fstab"), 'r') as fin:
-            with open(os.path.join(self.guestpath, "fstab"), 'w') as fout:
+            with open(os.path.join(self.containerpath, "fstab"), 'w') as fout:
                 for line in fin:
                     if line.startswith("/dev/dri") and not dri_exists:
                         lineout = "# /dev/dri not found, entry disabled ("\
@@ -201,7 +262,7 @@ class Container(object):
                     fout.write(lineout)
 
         src = os.path.join(lxcdefaults, "scripts")
-        dst = os.path.join(self.guestpath, "scripts")
+        dst = os.path.join(self.containerpath, "tools", "scripts")
         with ignored(OSError):
             shutil.rmtree(dst)
         shutil.copytree(src, dst)
@@ -210,7 +271,7 @@ class Container(object):
         utils.set_executable(os.path.join(dst, "post-stop.sh"))
 
         src = os.path.join(lxcdefaults, "guest")
-        dst = os.path.join(self.guestpath, "guest")
+        dst = os.path.join(self.containerpath, "tools", "guest")
         with ignored(OSError):
             shutil.rmtree(dst)
         shutil.copytree(src, dst)
@@ -228,7 +289,7 @@ class Container(object):
                 # l-h-g must be installed to compile additional modules
                 pkgs = "linux-headers-generic {}\n".format(
                     drivers[vga_device["Driver"]])
-                pkgsdir = os.path.join(self.guestpath, "guest", "var/local/otto/")
+                pkgsdir = os.path.join(self.containerpath, "guest", "var/local/otto/")
                 if not os.path.exists(pkgsdir):
                     os.makedirs(pkgsdir)
                 with open(os.path.join(pkgsdir, "00drivers.pkgs"), 'w') as fpkgs:
@@ -268,7 +329,10 @@ class Container(object):
 
     def setup_local_config(self, file_path):
         """Setup a custom local config"""
-        shutil.copy(file_path, os.path.join(self.rundir, const.LOCAL_CONFIG_FILE))
+        try:
+            shutil.copy(file_path, os.path.join(self.rundir, const.LOCAL_CONFIG_FILE))
+        except OSError as e:
+            raise ContainerError("Local config file provided errored out: {}".format(e))
 
     def remove_local_config(self):
         """Delete previously installed local config"""
@@ -288,9 +352,23 @@ class Container(object):
         if os.path.isabs(archive):
             restorefile = archive
         else:
-            restorefile = os.path.join(self.guestpath, const.ARCHIVEDIR, archive)
+            restorefile = os.path.join(self.containerpath, const.ARCHIVEDIR, archive)
         with ignored(OSError):
             shutil.rmtree(os.path.join(self.rundir))
         with tarfile.open(restorefile, "r:gz") as f:
             f.extractall(self.rundir)
         self._refreshconfig()
+
+    def _mountiso(self, container_imagepath):
+        """Mount iso from container_imagepath"""
+        (isomount, squashfs) = utils.get_iso_and_squashfs(container_imagepath)
+        if isomount is None or squashfs is None:
+            shutil.rmtree(self.containerpath)
+            raise ContainerError("Couldn't mount or extract squashfs from {}".format(container_imagepath))
+
+        self.config.isomount = isomount
+        self.config.squashfs = squashfs
+        self.config.image = os.path.basename(container_imagepath)
+
+        logger.debug("selected iso is {}, and squashfs is: {}".format(self.config.isomount,
+                                                                      self.config.squashfs))

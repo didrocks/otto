@@ -64,6 +64,16 @@ class Commands(object):
 
         pcreate = subparser.add_parser("create", help="Create a new container")
         pcreate.add_argument("name", help="name of the container")
+        pcreate.add_argument("image",
+                             help="iso to use as rootfs. The squashfs contained in this "
+                                  "image will be extracted and used as rootfs")
+        pcreate.add_argument("--local-config",
+                            default=None,
+                            help="Use a local configuration file. This one will be reuse until you specify --no-local-config")
+        pcreate.add_argument("-u", "--upgrade", action='store_true',
+                             default=False,
+                             help="Do and store persistenly an additional dist-upgrade "
+                                  "delta that will be stored and use within the container.")
         pcreate.set_defaults(func=self.cmd_create)
 
         pdestroy = subparser.add_parser("destroy", help="Destroy a container")
@@ -72,19 +82,14 @@ class Commands(object):
 
         pstart = subparser.add_parser("start", help="Start a container")
         pstart.add_argument("name", help="name of the container")
-        pstart.add_argument("-i", "--image",
-                            default=None,
-                            help="iso or squashfs to use as rootfs. If an "
-                            "ISO is used, the squashfs contained in this "
-                            "image will be extracted and used as rootfs")
         pstart.add_argument("-C", "--custom-installation",
                             default=None,
                             help="custom-installation directory to use for "
-                            "this run")
+                                 "this run")
         pstart.add_argument("--new", action='store_true',
                             default=False,
                             help="remove latest custom-installation directory for a vanilla "
-                            "ISO run")
+                                 "container run")
         pstart.add_argument("-k", "--keep-delta", action='store_true',
                             default=False,
                             help="Keep delta from latest run to restart in the exact same state")
@@ -103,7 +108,7 @@ class Commands(object):
         pstart.add_argument('-D', '--force-disconnect', action='store_true',
                             default=False,
                             help="Forcibly shutdown lightdm even if a session "
-                            "is running and a user might be connected.")
+                                 "is running and a user might be connected.")
         pstart.set_defaults(func=self.cmd_start)
 
         pstop = subparser.add_parser("stop", help="Stop a container")
@@ -144,7 +149,9 @@ class Commands(object):
     def cmd_create(self):
         """ Creates a new container """
         try:
-            self.container.create()
+            imagepath = os.path.realpath(self.args.image)
+            self.container.create(imagepath, upgrade=self.args.upgrade,
+                                             local_config=self.args.local_config)
             return 0
         except ContainerError as e:
             logger.error(e)
@@ -213,34 +220,6 @@ class Commands(object):
                 logger.error("Selected archive doesn't exist. Can't restore: {}.".format(e))
                 return 1
 
-        container_config = self.container.config
-
-        # image handling
-        if self.args.image is not None:
-            imagepath = os.path.realpath(self.args.image)
-        else:
-            try:
-                imagepath = container_config.image
-            except AttributeError:
-                logger.error("No image provided on the command line and you didn't "
-                             "have any previous run into that container. "
-                             "Please specify an image with -i.")
-                return 1
-            if not os.path.exists(imagepath):
-                logger.error("No image provided on the command line and '{}' "
-                             "doesn't exist. Please specify an image with -i. ".format(imagepath))
-                return 1
-
-        # mount and get iso and squashfs path
-        (isomount, squashfs) = utils.get_iso_and_squashfs(imagepath)
-        if isomount is None or squashfs is None:
-            return 1
-        container_config.isomount = isomount
-        container_config.squashfs = squashfs
-        container_config.image = imagepath
-        logger.debug("selected iso is {}, and squashfs is: {}".format(container_config.isomount,
-                                                                      container_config.squashfs))
-
         # custom installation handling
         if self.args.new:
             self.container.remove_custom_installation()
@@ -262,34 +241,15 @@ class Commands(object):
         elif self.args.no_local_config:
             self.container.remove_local_config()
 
-        # get iso infos and manage delta
-        (isoid, release, arch) = self._extract_cd_info(isomount)
-        if self.args.keep_delta:
-            logger.debug("Checking that the iso is compatible with the delta.")
-            if not (container_config.isoid == isoid and
-                    container_config.release == release and
-                    container_config.arch == arch):
-                logger.error("Can't reuse a previous run delta: the previous run was used with "
-                             "{deltaisoid}, {deltarelease}, {deltaarch} and {imagepath} is for "
-                             "{isoid}, {release}, {arch}. Please provide the same iso in parameter."
-                             "".format(deltaisoid=container_config.isoid,
-                                       deltarelease=container_config.release,
-                                       deltaarch=container_config.arch,
-                                       isoid=isoid, release=release, arch=arch,
-                                       imagepath=imagepath))
-                return(1)
-        else:
+        if not self.args.keep_delta:
             self.container.remove_delta()
-        container_config.isoid = isoid
-        container_config.release = release
-        container_config.arch = arch
 
         # that enable us to overwrite the restored "archive" state from restore()
         # if we don't want to resave the restored run
-        container_config.archive = self.args.archive
+        self.container.config.archive = self.args.archive
 
         try:
-            self.container.start()
+            self.container.start(with_delta=self.args.keep_delta)
         except ContainerError as e:
             logger.error(e)
             return 1
@@ -320,18 +280,3 @@ class Commands(object):
             logger.error(e)
             return 1
         return 0
-
-    def _extract_cd_info(self, image_path):
-        """Extract CD infos and populate the config with it"""
-        with open(os.path.join(image_path, ".disk", "info")) as f:
-            isoid = f.read().replace("\"", "").replace(" ", "_").replace('-',
-                                           "_").replace("(", "").replace(")",
-                                           "").replace("___", "_").lower()
-        for candidate_release in os.listdir(os.path.join(image_path, "dists")):
-            if candidate_release not in ('stable', 'unstable'):
-                release = candidate_release
-        with open(os.path.join(image_path, "README.diskdefines")) as f:
-            for line in f:
-                if line.startswith("#define ARCH  "):
-                    arch = line.split()[-1]
-        return (isoid, release, arch)

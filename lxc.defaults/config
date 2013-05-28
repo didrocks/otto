@@ -7,10 +7,10 @@ lxc.rootfs = /var/lib/lxc/${NAME}/rootfs
 lxc.mount = /var/lib/lxc/${NAME}/fstab
 lxc.pivotdir = lxc_putold
 
-lxc.hook.pre-start = /var/lib/lxc/${NAME}/scripts/pre-start.sh
-lxc.hook.pre-mount = /var/lib/lxc/${NAME}/scripts/pre-mount.sh
+lxc.hook.pre-start = /var/lib/lxc/${NAME}/tools/scripts/pre-start.sh
+lxc.hook.pre-mount = /var/lib/lxc/${NAME}/tools/scripts/pre-mount.sh
 lxc.hook.mount = /usr/share/lxc/hooks/mountcgroups
-lxc.hook.post-stop = /var/lib/lxc/${NAME}/scripts/post-stop.sh
+lxc.hook.post-stop = /var/lib/lxc/${NAME}/tools/scripts/post-stop.sh
 
 lxc.devttydir = lxc
 lxc.tty = 4
@@ -61,3 +61,6 @@ lxc.cgroup.devices.allow = c 116:* rwm
 lxc.cgroup.devices.allow = c 4:7 rwm
 # input
 lxc.cgroup.devices.allow = c 13:* rwm
+
+lxc.logfile = /tmp/foo
+lxc.loglevel = 1

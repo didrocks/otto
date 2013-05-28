@@ -22,10 +22,12 @@ Various Constants - part of the project otto
 LXCBASE = "/var/lib/lxc"
 RUNDIR = "run"
 ARCHIVEDIR = "archive"
+BASESDIR = "bases"
 
 CONFIG_FILE = "config"
 LOCAL_CONFIG_FILE = "config.local"
 
 START_TIMEOUT = 60
+UPGRADE_TIMEOUT = 10*60
 STOP_TIMEOUT = 30
 TEST_TIMEOUT = 2 * 3600

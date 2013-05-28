@@ -226,6 +226,20 @@ def get_iso_and_squashfs(image):
     logger.debug("found squashfs on ISO image: %s", squashfs_path)
     return (iso_mount, squashfs_path)
 
+def extract_cd_info(image_path):
+    """Extract CD infos and return them (isoid, release, arch)"""
+    with open(os.path.join(image_path, ".disk", "info")) as f:
+        isoid = f.read().replace("\"", "").replace(" ", "_").replace('-',
+                                       "_").replace("(", "").replace(")",
+                                       "").replace("___", "_").lower()
+    for candidate_release in os.listdir(os.path.join(image_path, "dists")):
+        if candidate_release not in ('stable', 'unstable'):
+            release = candidate_release
+    with open(os.path.join(image_path, "README.diskdefines")) as f:
+        for line in f:
+            if line.startswith("#define ARCH  "):
+                arch = line.split()[-1]
+    return (isoid, release, arch)
 
 def exit_missing_imports(modulename, package):
     """ Exit if a required import is missing """
@@ -301,7 +315,7 @@ def find_vga_device():
     return graphics_card
 
 
-# this is stole from python 3.4 :)
+# this is stolen from python 3.4 :)
 @contextmanager
 def ignored(*exceptions):
     try:

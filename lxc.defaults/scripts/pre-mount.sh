@@ -63,8 +63,6 @@ prepare_fs() {
     # delta_dir is the overlay and will contain all the files that have been
     # changed in the container
     delta_dir="$RUNDIR/delta"
-    # TODO: Make it an option of the start command of otto
-    #rm -Rf $delta_dir
     mkdir -p $delta_dir
 
     # Mount the squashfs
@@ -74,7 +72,15 @@ prepare_fs() {
 
     # FIXME: Overlayfs leaks loop devices
     #mount -n -t overlayfs -o upperdir=$delta_dir,lowerdir=$SQUASHFS_DIR overlayfs $LXC_ROOTFS_PATH
-    mount -n -t aufs -o br=$delta_dir=rw:$squashfs_dir=ro aufs $LXC_ROOTFS_PATH
+    if [ -z "$BASEDELTA" ] ; then
+        mount -n -t aufs -o br=$delta_dir=rw:$squashfs_dir=ro aufs $LXC_ROOTFS_PATH
+    elif [ "$COMMAND" = "upgrade" ]; then
+        mount -n -t aufs -o br=$delta_base_dir=rw:$squashfs_dir=ro aufs $LXC_ROOTFS_PATH
+        touch $LXC_ROOTFS_PATH/.upgrade
+    else
+        mount -n -t aufs -o br=$delta_dir=rw:br=$delta_base_dir=ro:$squashfs_dir=ro aufs $LXC_ROOTFS_PATH
+    fi
+
     umount -l $squashfs_dir
 
     # Create hardware devices
@@ -205,8 +211,8 @@ test_setup() {
     user=$1
 
     # rsync default files to the container essentially to install new packages
-    if [ -d $BASEDIR/guest/ ]; then
-        rsync -avH $BASEDIR/guest/ $rootfs/
+    if [ -d $BASEDIR/tools/guest/ ]; then
+        rsync -avH $BASEDIR/tools/guest/ $rootfs/
     fi
 
     # rsync custom-installation directory to rootfs
