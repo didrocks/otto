@@ -24,16 +24,23 @@
 
 BASEDIR=$(dirname $LXC_CONFIG_FILE)
 RUNDIR=$BASEDIR/run
+ARCHIVE=""
 
 # source run specific configuration
 CONFIG=$RUNDIR/config
+LOCAL_CONFIG=$RUNDIR/config.local
 if [ ! -r "$CONFIG" ]; then
     echo "E: No configuration found on $CONFIG. It means you never ran otto start."
     exit 1
 fi
 . $CONFIG
 
+if [ -r "$LOCAL_CONFIG" ]; then
+    . $LOCAL_CONFIG
+fi
+
 archive() {
+    ARCHIVEDIR="$BASEDIR/$ARCHIVEDIR"
     mkdir -p "$ARCHIVEDIR"
     previous_dir=$(pwd)
     cd $RUNDIR
@@ -42,7 +49,7 @@ archive() {
 }
 
 unmount_fs() {
-    squashfs_dir="$(dirname $LXC_CONFIG_FILE)/squashfs"
+    squashfs_dir="$BASEDIR/squashfs"
 
     umount.aufs $LXC_ROOTFS_PATH || true
     umount $squashfs_dir || true

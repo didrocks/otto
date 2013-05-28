@@ -64,14 +64,17 @@ class Commands(object):
 
         pcreate = subparser.add_parser("create", help="Create a new container")
         pcreate.add_argument("name", help="name of the container")
+        pcreate.add_argument("image",
+                             help="iso to use as rootfs. The squashfs contained in this "
+                                  "image will be extracted and used as rootfs")
+        pcreate.add_argument("--local-config",
+                            default=None,
+                            help="Use a local configuration file. This one will be reuse until you specify --no-local-config")
+        pcreate.add_argument("-u", "--upgrade", action='store_true',
+                             default=False,
+                             help="Do and store persistenly an additional dist-upgrade "
+                                  "delta that will be stored and use within the container.")
         pcreate.set_defaults(func=self.cmd_create)
-        pstart.add_argument("image",
-                            help="iso to use as rootfs. The squashfs contained in this "
-                                 "image will be extracted and used as rootfs")
-        pstart.add_argument("-u", "--upgrade", action='store_true',
-                            default=False,
-                            help="Do and store persistenly an additional dist-upgrade "
-                                 "delta that will be stored and use within the container.")
 
         pdestroy = subparser.add_parser("destroy", help="Destroy a container")
         pdestroy.add_argument("name", help="name of the container")
@@ -147,7 +150,8 @@ class Commands(object):
         """ Creates a new container """
         try:
             imagepath = os.path.realpath(self.args.image)
-            self.container.create(imagepath)
+            self.container.create(imagepath, upgrade=self.args.upgrade,
+                                             local_config=self.args.local_config)
             return 0
         except ContainerError as e:
             logger.error(e)

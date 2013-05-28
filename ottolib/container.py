@@ -62,7 +62,7 @@ class Container(object):
     def running(self):
         return self.container.running
 
-    def create(self, imagepath):
+    def create(self, imagepath, upgrade=False, local_config=None):
         """Creates a new container
 
         This method creates a new container from scratch. We don't want to use
@@ -83,6 +83,7 @@ class Container(object):
         TODO:
             - Override LXC configuration file or append new directives
             - Override default fstab or append new entries
+            - in case of failure, needs to umount iso, needs to rm the container entirely
         """
         logger.info("Creating container '%s'", self.name)
 
@@ -102,16 +103,22 @@ class Container(object):
 
         self.config.isomount = isomount
         self.config.squashfs = squashfs
-        self.config.image = container_imagepath
+        self.config.image = os.path.basename(container_imagepath)
         logger.debug("selected iso is {}, and squashfs is: {}".format(self.config.isomount,
                                                                       self.config.squashfs))
 
+        if local_config:
+            self.setup_local_config(local_config)
+
         # Base rootfs
         os.makedirs(os.path.join(self.containerpath, "rootfs"))
-        # Scripts
-        os.makedirs(os.path.join(self.containerpath, "scripts"))
+        # Tools
+        os.makedirs(os.path.join(self.containerpath, "tools"))
         # tools and default config from otto
         self._copy_otto_files()
+
+        if upgrade:
+            self.upgrade()
 
         logger.debug("Creation done")
 
@@ -139,7 +146,22 @@ class Container(object):
 
     def upgrade(self):
         """Run and store a dist-upgrade in the container."""
-        pass
+        self.config.basedeltadir = os.path.join(const.BASESDIR, time.strftime("base_%Y.%m.%d-%Hh%Mm%S"))
+        logger.debug("Upgrading the container to create a base in {}".format(self.config.basedeltadir))
+        basedelta = os.path.join(self.containerpath, self.config.basedeltadir)
+        os.makedirs(basedelta)
+        self.config.command = "upgrade"
+        if not self.container.start():
+            raise ContainerError("Can't start lxc container for upgrading")
+        self.container.wait('RUNNING', const.START_TIMEOUT)
+        if not self.running:
+            raise ContainerError("The container didn't start successfully")
+        self.container.wait('STOPPED', const.UPGRADE_TIMEOUT)
+        if not self.running:
+            raise ContainerError("The container didn't stop successfully")
+        self.config.command = ""
+        if os.path.isfile(os.path.join(basedelta, '.upgrade')):
+            raise ContainerError("The upgrade didn't finish successfully")
 
     def start(self):
         """Starts a container.
@@ -156,7 +178,7 @@ class Container(object):
         # regenerate a new runid, even if restarting an old run
         self.config.runid = int(time.time())
 
-        self.config.archivedir = os.path.join(self.containerpath, const.ARCHIVEDIR)
+        self.config.archivedir = const.ARCHIVEDIR
 
         # tools and default config from otto
         self._copy_otto_files()
@@ -229,7 +251,7 @@ class Container(object):
                     fout.write(lineout)
 
         src = os.path.join(lxcdefaults, "scripts")
-        dst = os.path.join(self.containerpath, "scripts")
+        dst = os.path.join(self.containerpath, "tools", "scripts")
         with ignored(OSError):
             shutil.rmtree(dst)
         shutil.copytree(src, dst)
@@ -238,7 +260,7 @@ class Container(object):
         utils.set_executable(os.path.join(dst, "post-stop.sh"))
 
         src = os.path.join(lxcdefaults, "guest")
-        dst = os.path.join(self.containerpath, "guest")
+        dst = os.path.join(self.containerpath, "tools", "guest")
         with ignored(OSError):
             shutil.rmtree(dst)
         shutil.copytree(src, dst)
@@ -296,7 +318,10 @@ class Container(object):
 
     def setup_local_config(self, file_path):
         """Setup a custom local config"""
-        shutil.copy(file_path, os.path.join(self.rundir, const.LOCAL_CONFIG_FILE))
+        try:
+            shutil.copy(file_path, os.path.join(self.rundir, const.LOCAL_CONFIG_FILE))
+        except OSError as e:
+            raise ContainerError("Local config file provided errored out: {}".format(e))
 
     def remove_local_config(self):
         """Delete previously installed local config"""

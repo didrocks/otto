@@ -301,7 +301,7 @@ def find_vga_device():
     return graphics_card
 
 
-# this is stole from python 3.4 :)
+# this is stolen from python 3.4 :)
 @contextmanager
 def ignored(*exceptions):
     try:
