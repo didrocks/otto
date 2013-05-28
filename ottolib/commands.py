@@ -65,6 +65,13 @@ class Commands(object):
         pcreate = subparser.add_parser("create", help="Create a new container")
         pcreate.add_argument("name", help="name of the container")
         pcreate.set_defaults(func=self.cmd_create)
+        pstart.add_argument("image",
+                            help="iso to use as rootfs. The squashfs contained in this "
+                                 "image will be extracted and used as rootfs")
+        pstart.add_argument("-u", "--upgrade", action='store_true',
+                            default=False,
+                            help="Do and store persistenly an additional dist-upgrade "
+                                 "delta that will be stored and use within the container.")
 
         pdestroy = subparser.add_parser("destroy", help="Destroy a container")
         pdestroy.add_argument("name", help="name of the container")
@@ -72,19 +79,14 @@ class Commands(object):
 
         pstart = subparser.add_parser("start", help="Start a container")
         pstart.add_argument("name", help="name of the container")
-        pstart.add_argument("-i", "--image",
-                            default=None,
-                            help="iso or squashfs to use as rootfs. If an "
-                            "ISO is used, the squashfs contained in this "
-                            "image will be extracted and used as rootfs")
         pstart.add_argument("-C", "--custom-installation",
                             default=None,
                             help="custom-installation directory to use for "
-                            "this run")
+                                 "this run")
         pstart.add_argument("--new", action='store_true',
                             default=False,
                             help="remove latest custom-installation directory for a vanilla "
-                            "ISO run")
+                                 "container run")
         pstart.add_argument("-k", "--keep-delta", action='store_true',
                             default=False,
                             help="Keep delta from latest run to restart in the exact same state")
@@ -103,7 +105,7 @@ class Commands(object):
         pstart.add_argument('-D', '--force-disconnect', action='store_true',
                             default=False,
                             help="Forcibly shutdown lightdm even if a session "
-                            "is running and a user might be connected.")
+                                 "is running and a user might be connected.")
         pstart.set_defaults(func=self.cmd_start)
 
         pstop = subparser.add_parser("stop", help="Stop a container")
@@ -144,7 +146,8 @@ class Commands(object):
     def cmd_create(self):
         """ Creates a new container """
         try:
-            self.container.create()
+            imagepath = os.path.realpath(self.args.image)
+            self.container.create(imagepath)
             return 0
         except ContainerError as e:
             logger.error(e)
@@ -322,7 +325,7 @@ class Commands(object):
         return 0
 
     def _extract_cd_info(self, image_path):
-        """Extract CD infos and populate the config with it"""
+        """Extract CD infos and return them (isoid, release, arch)"""
         with open(os.path.join(image_path, ".disk", "info")) as f:
             isoid = f.read().replace("\"", "").replace(" ", "_").replace('-',
                                            "_").replace("(", "").replace(")",

@@ -61,3 +61,6 @@ lxc.cgroup.devices.allow = c 116:* rwm
 lxc.cgroup.devices.allow = c 4:7 rwm
 # input
 lxc.cgroup.devices.allow = c 13:* rwm
+
+lxc.logfile = /tmp/foo
+lxc.loglevel = 1
