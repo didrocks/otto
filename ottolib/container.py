@@ -161,28 +161,27 @@ class Container(object):
             raise ContainerError("Container '{}' already running.".format(self.name))
 
         self._mountiso(os.path.join(self.containerpath, self.config.image))
-        # check that info are in coherence
+        # check that the container is coherent with our deltas
         (isoid, release, arch) = utils.extract_cd_info(self.config.isomount)
         if self.config.command != "upgrade":
-            if with_delta:
-                logger.debug("Checking that the delta is compatible with the container iso.")
-                if not (self.config.isoid == isoid and
-                        self.config.release == release and
-                        self.config.arch == arch):
-                    raise ContainerError("Can't reuse a previous run delta: the previous run was used with "
-                                 "{deltaisoid}, {deltarelease}, {deltaarch} and {imagepath} is for "
-                                 "{isoid}, {release}, {arch}. Please use a compatible container."
-                                 "".format(deltaisoid=container_config.isoid,
-                                           deltarelease=container_config.release,
-                                           deltaarch=container_config.arch,
-                                           isoid=isoid, release=release, arch=arch,
-                                           imagepath=self.config.image))
-                if self.config.basedeltadir:
-                    logger.debug("Check that the delta has a compatible base delta in the container")
-                    if not os.path.isfile(os.path.join(self.containerpath, self.config.basedeltadir)):
-                        raise ContainerError("No base delta found in {}. This means that we can't reuse "
-                                             "this previous run with it. Please use a compatible container "
-                                             "or restore this base delta.".format(self.config.basedeltadir))
+            logger.debug("Checking that the container is compatible with the iso.")
+            if not (self.config.isoid == isoid and
+                    self.config.release == release and
+                    self.config.arch == arch):
+                raise ContainerError("Can't reuse a previous run delta: the previous run was used with "
+                             "{deltaisoid}, {deltarelease}, {deltaarch} and {imagepath} is for "
+                             "{isoid}, {release}, {arch}. config use a compatible container."
+                             "".format(deltaisoid=self.config.isoid,
+                                       deltarelease=self.config.release,
+                                       deltaarch=self.config.arch,
+                                       isoid=isoid, release=release, arch=arch,
+                                       imagepath=self.config.image))
+            if self.config.basedeltadir:
+                logger.debug("Check that the delta has a compatible base delta in the container")
+                if not os.path.isdir(os.path.join(self.containerpath, self.config.basedeltadir)):
+                    raise ContainerError("No base delta found as {}. This means that we can't reuse "
+                                         "this previous run with it. Please use a compatible container "
+                                         "or restore this base delta.".format(self.config.basedeltadir))
         self.config.isoid = isoid
         self.config.release = release
         self.config.arch = arch
