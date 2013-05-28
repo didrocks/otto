@@ -70,7 +70,7 @@ class Commands(object):
         pcreate.add_argument("--local-config",
                             default=None,
                             help="Use a local configuration file. This one will be reuse until you specify --no-local-config")
-        pstart.add_argument('-D', '--force-disconnect', action='store_true',
+        pcreate.add_argument('-D', '--force-disconnect', action='store_true',
                             default=False,
                             help="Forcibly shutdown lightdm even if a session "
                                  "is running and a user might be connected (only useful for upgrade)")
