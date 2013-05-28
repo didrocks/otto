@@ -70,6 +70,10 @@ class Commands(object):
         pcreate.add_argument("--local-config",
                             default=None,
                             help="Use a local configuration file. This one will be reuse until you specify --no-local-config")
+        pstart.add_argument('-D', '--force-disconnect', action='store_true',
+                            default=False,
+                            help="Forcibly shutdown lightdm even if a session "
+                                 "is running and a user might be connected (only useful for upgrade)")
         pcreate.add_argument("-u", "--upgrade", action='store_true',
                              default=False,
                              help="Do and store persistenly an additional dist-upgrade "
@@ -148,6 +152,15 @@ class Commands(object):
 
     def cmd_create(self):
         """ Creates a new container """
+
+        # first, check that the container is not running
+        if self.args.upgrade:
+            if self.container.running:
+                logger.warning("Container '{}' already running.".format(self.container.name))
+                return 1
+            if self.is_already_logged_user(self.args.force_disconnect):
+                return 1
+
         try:
             imagepath = os.path.realpath(self.args.image)
             self.container.create(imagepath, upgrade=self.args.upgrade,
@@ -184,25 +197,8 @@ class Commands(object):
         if self.container.running:
             logger.warning("Container '{}' already running.".format(self.container.name))
             return 1
-
-        # Don't shoot any logged in user
-        if not self.args.force_disconnect:
-            try:
-                subprocess.check_call(["pidof", "gnome-session"])
-                logger.warning("gnome-session is running. This likely means "
-                               "that a user is logged in and will be "
-                               "forcibly disconnected. Please logout before "
-                               "starting the container or use option -D")
-                return 1
-            except subprocess.CalledProcessError:
-                pass
-
-        srv = "lightdm"
-        ret = utils.service_stop(srv)
-        if ret > 2:  # Not enough privileges or Unknown error: Abort
-            logger.error("An error occurred while stopping service '{}'. "
-                         "Aborting!".format(srv))
-            return ret
+        if self.is_already_logged_user(self.args.force_disconnect):
+            return 1
 
         # Hack on the host system for people wanting to run lxc-start directly
         if not os.path.isfile("/etc/apparmor.d/disable/usr.bin.lxc-start"):
@@ -280,3 +276,25 @@ class Commands(object):
             logger.error(e)
             return 1
         return 0
+
+    def is_already_logged_user(self, force_disconnect=False):
+        """Return True if a user is already logged in and we don't shoot them"""
+        # Don't shoot any logged in user
+        if not force_disconnect:
+            try:
+                subprocess.check_call(["pidof", "gnome-session"])
+                logger.warning("gnome-session is running. This likely means "
+                               "that a user is logged in and will be "
+                               "forcibly disconnected. Please logout before "
+                               "starting the container or use option -D")
+                return True
+            except subprocess.CalledProcessError:
+                pass
+
+        srv = "lightdm"
+        ret = utils.service_stop(srv)
+        if ret > 2:  # Not enough privileges or Unknown error: Abort
+            logger.error("An error occurred while stopping service '{}'. "
+                         "Aborting!".format(srv))
+            sys.exit(ret)
+        return False
