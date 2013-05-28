@@ -33,7 +33,8 @@ do_cleanup() {
     # Kill them twice but don't be nice on second try
     for sig in 15 9; do
         for pid in $PIDS; do
-            if [ $pid -ne $$ ]; then  # Don't kill yourself
+            # Don't kill yourself or your parent
+            if [ $pid -ne $$ -a $pid -ne $ppid ]; then
                 if sudo kill -0 $pid 2>&1; then
                     echo "I: Killing $pid $(ps h --pid $pid -o args)"
                     sudo kill -$sig $pid
@@ -59,7 +60,7 @@ ppid=$PPID
 PIDS=$(find_all_children $ppid)
 while sleep $INTERVAL; do
     PIDS=$(find_all_children $ppid)
-    if ! kill -0 $ppid 2>&1>/dev/null; then
+    if ! kill -0 $ppid 2>&1 >/dev/null; then
         echo "I: Parent process left. Bye!"
         exit 0
     fi
