@@ -68,6 +68,8 @@ dl_image() {
             echo "E: $src failed to download!"
             return 1
         fi
+    else
+        echo "I: Stable release image ($RELEASE) already exists. Skipping download!"
     fi
     return 0
 }
