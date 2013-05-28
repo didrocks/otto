@@ -1,0 +1,70 @@
+#!/bin/sh 
+
+#
+# Downloads an ISO from a given URL, apply updates on the host and reboot
+# Do not run this script on your machine
+#
+# This script is part of the project Otto
+#
+
+# Copyright © 2013 Canonical Ltd.
+# Author: Jean-baptiste Lallement <jean-baptiste.lallement@canonical.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2, as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+if [ $# -eq 0 ]; then
+    cat <<EOF
+Usage: $(basename $0) BASEURL
+This script is intended to be run from Jenkins on a test machine, DO NOT RUN
+it on your machine.
+
+This script downloads an Ubuntu Desktop ISO from the given URL for the release
+and architecture matching the host system.  Then the system is upgraded and
+rebooted.
+EOF
+fi
+
+echo -n "WARNING: This script will update and reboot your system. You have 10s to
+press CTRL+C "
+for i in $(seq 10); do
+    echo -n "."
+    sleep 1
+done
+echo
+
+RELEASE=$(lsb_release -sc)
+BASEURL=$1
+
+ISONAME=$RELEASE-desktop-$(dpkg --print-architecture ).iso
+ISODIR=$HOME/iso/ubuntu
+ISOTMP=$(mktemp $(echo $JOB_NAME|tr '/' '_').XXXXXX)
+
+SRC=$BASEURL/iso/$RELEASE/$ISONAME
+DST=$ISODIR/$ISONAME
+mkdir -p $ISODIR
+echo "Downloading $SRC to $ISOTMP"
+wget --progress=dot:mega $SRC -O $ISOTMP
+if [ -f "$ISOTMP" ]; then
+    mv $ISOTMP $DST
+else
+    echo "E: $SRC failed to download!"
+    exit 1
+fi
+
+DEBIAN_FRONTEND=noninteractive
+sudo apt-get update  && sudo apt-get -y dist-upgrade
+
+if [ $? -eq 0 ]; then
+    (echo "Reboot in 10s"; sleep 10; sudo reboot)&
+fi
