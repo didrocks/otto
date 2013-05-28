@@ -95,17 +95,7 @@ class Container(object):
         container_imagepath = os.path.join(self.containerpath, os.path.basename(imagepath))
         os.link(imagepath, container_imagepath)
 
-        # mount and get iso and squashfs path
-        (isomount, squashfs) = utils.get_iso_and_squashfs(container_imagepath)
-        if isomount is None or squashfs is None:
-            shutil.rmtree(self.containerpath)
-            raise ContainerError("Couldn't mount or extract squashfs from {}".format(container_imagepath))
-
-        self.config.isomount = isomount
-        self.config.squashfs = squashfs
-        self.config.image = os.path.basename(container_imagepath)
-        logger.debug("selected iso is {}, and squashfs is: {}".format(self.config.isomount,
-                                                                      self.config.squashfs))
+        self._mountiso(container_imagepath)
 
         if local_config:
             self.setup_local_config(local_config)
@@ -116,6 +106,8 @@ class Container(object):
         os.makedirs(os.path.join(self.containerpath, "tools"))
         # tools and default config from otto
         self._copy_otto_files()
+
+        self.container.load_config()
 
         if upgrade:
             self.upgrade()
@@ -151,19 +143,15 @@ class Container(object):
         basedelta = os.path.join(self.containerpath, self.config.basedeltadir)
         os.makedirs(basedelta)
         self.config.command = "upgrade"
-        if not self.container.start():
-            raise ContainerError("Can't start lxc container for upgrading")
-        self.container.wait('RUNNING', const.START_TIMEOUT)
-        if not self.running:
-            raise ContainerError("The container didn't start successfully")
+        self.start()
         self.container.wait('STOPPED', const.UPGRADE_TIMEOUT)
-        if not self.running:
+        if self.running:
             raise ContainerError("The container didn't stop successfully")
         self.config.command = ""
         if os.path.isfile(os.path.join(basedelta, '.upgrade')):
             raise ContainerError("The upgrade didn't finish successfully")
 
-    def start(self):
+    def start(self, with_delta=False):
         """Starts a container.
 
         This method refresh with starts a container and wait for START_TIMEOUT before
@@ -172,9 +160,33 @@ class Container(object):
         if self.running:
             raise ContainerError("Container '{}' already running.".format(self.name))
 
-        # ensure we have a rundir
-        with ignored(OSError):
-            os.makedirs(self.rundir)
+        self._mountiso(os.path.join(self.containerpath, self.config.image))
+        # check that info are in coherence
+        (isoid, release, arch) = utils.extract_cd_info(self.config.isomount)
+        if self.config.command != "upgrade":
+            if with_delta:
+                logger.debug("Checking that the delta is compatible with the container iso.")
+                if not (self.config.isoid == isoid and
+                        self.config.release == release and
+                        self.config.arch == arch):
+                    raise ContainerError("Can't reuse a previous run delta: the previous run was used with "
+                                 "{deltaisoid}, {deltarelease}, {deltaarch} and {imagepath} is for "
+                                 "{isoid}, {release}, {arch}. Please use a compatible container."
+                                 "".format(deltaisoid=container_config.isoid,
+                                           deltarelease=container_config.release,
+                                           deltaarch=container_config.arch,
+                                           isoid=isoid, release=release, arch=arch,
+                                           imagepath=self.config.image))
+                if self.config.basedeltadir:
+                    logger.debug("Check that the delta has a compatible base delta in the container")
+                    if not os.path.isfile(os.path.join(self.containerpath, self.config.basedeltadir)):
+                        raise ContainerError("No base delta found in {}. This means that we can't reuse "
+                                             "this previous run with it. Please use a compatible container "
+                                             "or restore this base delta.".format(self.config.basedeltadir))
+        self.config.isoid = isoid
+        self.config.release = release
+        self.config.arch = arch
+
         # regenerate a new runid, even if restarting an old run
         self.config.runid = int(time.time())
 
@@ -347,3 +359,17 @@ class Container(object):
         with tarfile.open(restorefile, "r:gz") as f:
             f.extractall(self.rundir)
         self._refreshconfig()
+
+    def _mountiso(self, container_imagepath):
+        """Mount iso from container_imagepath"""
+        (isomount, squashfs) = utils.get_iso_and_squashfs(container_imagepath)
+        if isomount is None or squashfs is None:
+            shutil.rmtree(self.containerpath)
+            raise ContainerError("Couldn't mount or extract squashfs from {}".format(container_imagepath))
+
+        self.config.isomount = isomount
+        self.config.squashfs = squashfs
+        self.config.image = os.path.basename(container_imagepath)
+
+        logger.debug("selected iso is {}, and squashfs is: {}".format(self.config.isomount,
+                                                                      self.config.squashfs))

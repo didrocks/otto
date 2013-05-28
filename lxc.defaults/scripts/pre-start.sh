@@ -49,7 +49,7 @@ prepare_fs() {
     #
     # $1: Path to squashfs file
 
-    IMAGE="$BASDIR/$IMAGE"
+    IMAGE="$BASEDIR/$IMAGE"
     if ! mountpoint -q $ISOMOUNT; then
         echo "I: $ISOMOUNT not mounted yet, creating and mounting"
         mkdir -p $ISOMOUNT
@@ -87,7 +87,7 @@ prepare_fs() {
         touch $LXC_ROOTFS_PATH/.upgrade
     else
         BASEDELTADIR="$BASEDIR/$BASEDELTADIR"
-        mount -n -t aufs -o br=$delta_dir=rw:br=$BASEDELTADIR=ro:$squashfs_dir=ro aufs $LXC_ROOTFS_PATH
+        mount -n -t aufs -o br=$delta_dir=rw:$BASEDELTADIR=ro:$squashfs_dir=ro aufs $LXC_ROOTFS_PATH
     fi
     umount -l $squashfs_dir
 

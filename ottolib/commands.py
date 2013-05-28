@@ -220,34 +220,6 @@ class Commands(object):
                 logger.error("Selected archive doesn't exist. Can't restore: {}.".format(e))
                 return 1
 
-        container_config = self.container.config
-
-        # image handling
-        if self.args.image is not None:
-            imagepath = os.path.realpath(self.args.image)
-        else:
-            try:
-                imagepath = container_config.image
-            except AttributeError:
-                logger.error("No image provided on the command line and you didn't "
-                             "have any previous run into that container. "
-                             "Please specify an image with -i.")
-                return 1
-            if not os.path.exists(imagepath):
-                logger.error("No image provided on the command line and '{}' "
-                             "doesn't exist. Please specify an image with -i. ".format(imagepath))
-                return 1
-
-        # mount and get iso and squashfs path
-        (isomount, squashfs) = utils.get_iso_and_squashfs(imagepath)
-        if isomount is None or squashfs is None:
-            return 1
-        container_config.isomount = isomount
-        container_config.squashfs = squashfs
-        container_config.image = imagepath
-        logger.debug("selected iso is {}, and squashfs is: {}".format(container_config.isomount,
-                                                                      container_config.squashfs))
-
         # custom installation handling
         if self.args.new:
             self.container.remove_custom_installation()
@@ -269,34 +241,15 @@ class Commands(object):
         elif self.args.no_local_config:
             self.container.remove_local_config()
 
-        # get iso infos and manage delta
-        (isoid, release, arch) = self._extract_cd_info(isomount)
-        if self.args.keep_delta:
-            logger.debug("Checking that the iso is compatible with the delta.")
-            if not (container_config.isoid == isoid and
-                    container_config.release == release and
-                    container_config.arch == arch):
-                logger.error("Can't reuse a previous run delta: the previous run was used with "
-                             "{deltaisoid}, {deltarelease}, {deltaarch} and {imagepath} is for "
-                             "{isoid}, {release}, {arch}. Please provide the same iso in parameter."
-                             "".format(deltaisoid=container_config.isoid,
-                                       deltarelease=container_config.release,
-                                       deltaarch=container_config.arch,
-                                       isoid=isoid, release=release, arch=arch,
-                                       imagepath=imagepath))
-                return(1)
-        else:
+        if not self.args.keep_delta:
             self.container.remove_delta()
-        container_config.isoid = isoid
-        container_config.release = release
-        container_config.arch = arch
 
         # that enable us to overwrite the restored "archive" state from restore()
         # if we don't want to resave the restored run
-        container_config.archive = self.args.archive
+        self.container.config.archive = self.args.archive
 
         try:
-            self.container.start()
+            self.container.start(with_delta=self.args.keep_delta)
         except ContainerError as e:
             logger.error(e)
             return 1
@@ -327,18 +280,3 @@ class Commands(object):
             logger.error(e)
             return 1
         return 0
-
-    def _extract_cd_info(self, image_path):
-        """Extract CD infos and return them (isoid, release, arch)"""
-        with open(os.path.join(image_path, ".disk", "info")) as f:
-            isoid = f.read().replace("\"", "").replace(" ", "_").replace('-',
-                                           "_").replace("(", "").replace(")",
-                                           "").replace("___", "_").lower()
-        for candidate_release in os.listdir(os.path.join(image_path, "dists")):
-            if candidate_release not in ('stable', 'unstable'):
-                release = candidate_release
-        with open(os.path.join(image_path, "README.diskdefines")) as f:
-            for line in f:
-                if line.startswith("#define ARCH  "):
-                    arch = line.split()[-1]
-        return (isoid, release, arch)
