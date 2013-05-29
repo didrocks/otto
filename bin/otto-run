@@ -40,7 +40,7 @@ TESTPATH=""
 ISOPATH=""
 OTTOOPTS=""
 
-# 
+#
 # These parameters can be overridden in testsuite configuration file or the
 # environment
 #
@@ -124,7 +124,7 @@ container_exists() {
     #
     # $1 : Name of the container
     # @return: 0 if exists 1 otherwise
-    if lxc-ls "$1" | grep -qw "$1"; then 
+    if lxc-ls "$1" | grep -qw "$1"; then
         return 0
     else
         return 1
@@ -245,7 +245,7 @@ run_hook() {
     [ $# -eq 0 ] && return
     hook=$TESTHOOKS/$1
     shift
-    
+
     if [ -x "$hook" ]; then
         echo "I: Executing test hook '$hook'"
         $hook $@
@@ -253,7 +253,7 @@ run_hook() {
         if [ $RET -gt 0 ]; then
             echo "E: Hook '$hook' failed with code $RET. Aborting!"
             RC=$ETESTHOOKFAILED
-            exit 
+            exit
         fi
     fi
 }
@@ -281,8 +281,7 @@ while true ; do
 done
 
 CONTAINER="$1"
-ISOPATH="$2"
-TESTPATH="$3"
+TESTPATH="$2"
 
 LXCROOT=$LXCBASE/$CONTAINER/run/delta
 
@@ -298,7 +297,7 @@ fi
 if ! container_exists $CONTAINER; then
     echo "E: Container '$CONTAINER' doesn't exists. Exiting!"
     RC=$ECONTAINERNOTFOUND
-    exit 
+    exit
 fi
 
 if container_is_running $CONTAINER; then
