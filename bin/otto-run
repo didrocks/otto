@@ -335,8 +335,9 @@ echo "timeout: PASS" >> $LXCROOT/var/local/otto/summary.log
 
 # We always want this directory
 collect_results $RESULTSDIR /var/local/otto
-# Artifacts created by the run
-collect_results $RESULTSDIR $LOGFILES $ARTIFACTS
+# Artifacts and logs created by the run
+collect_results $RESULTSDIR $ARTIFACTS
+collect_results $RESULTSDIR/logs $LOGFILES
 
 if ! check_results $RESULTSDIR/otto/summary.log; then
     RC=$ETESTFAILED
