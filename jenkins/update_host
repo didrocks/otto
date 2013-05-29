@@ -26,7 +26,7 @@
 RELEASE=$(lsb_release -sc)
 RC=0
 OTTOCMD="$HOME/bin/otto"
-OTTOOPTS=""
+OTTOOPTS="-d"
 ARCH=$(dpkg --print-architecture )
 ISODIR=$HOME/iso/ubuntu
 if [ "$RELEASE" = "$(distro-info -d)" ]; then
