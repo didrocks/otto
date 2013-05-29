@@ -174,7 +174,7 @@ purge_old_containers() {
     purge_ts=$(date -d "$2" "+%s")
     for name in $(lxc-ls "$1"); do
         lxcdatetime="$(echo $name | sed -e 's/.*\([0-9]\{8\}\)-\([0-9]\{2\}\)\([0-9]\{2\}\)/\1 \2:\3/')"
-        if ! date -d "$lxcdatetime" 2>&1 >/dev/null; >then
+        if ! date -d "$lxcdatetime" 2>&1 >/dev/null; then
             echo "W: Cannot identify date from string '$lxcdatetime'.  Container '$name' kept!"
             continue
         fi
