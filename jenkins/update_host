@@ -86,6 +86,7 @@ update_system() {
     # 
     # @return: 0 on success, 1 on failure
 
+    echo "I: Updating Host System"
     delay=30
     DEBIAN_FRONTEND=noninteractive
     sudo apt-get update
@@ -152,6 +153,10 @@ create_container() {
     sudo -E $OTTOCMD $OTTOOPTS create -D -u $1 $2
     return $?
 }
+
+hrule() {
+    echo "= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =" 
+}
 [ $# -eq 0 ] && usage
 
 # Safeguard
@@ -162,6 +167,7 @@ for i in $(seq 10); do
 done
 echo
 
+hrule
 dl_image "$1/iso/$RELEASE/"
 RC=$?
 
@@ -174,6 +180,7 @@ if [ $RC -eq 0 ]; then
     [ $RET -ne 0 ] && RC=$RET
 fi
 
+hrule
 update_system
 RET=$?
 [ $RET -ne 0 ] && RC=$RET
