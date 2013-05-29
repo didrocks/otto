@@ -289,7 +289,8 @@ class Container(object):
                 # l-h-g must be installed to compile additional modules
                 pkgs = "linux-headers-generic {}\n".format(
                     drivers[vga_device["Driver"]])
-                pkgsdir = os.path.join(self.containerpath, "guest", "var/local/otto/")
+                # TODO: this shouldn't be in the guest directory
+                pkgsdir = os.path.join(self.containerpath, "tools", "guest", "var/local/otto/")
                 if not os.path.exists(pkgsdir):
                     os.makedirs(pkgsdir)
                 with open(os.path.join(pkgsdir, "00drivers.pkgs"), 'w') as fpkgs:
