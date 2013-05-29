@@ -35,6 +35,8 @@ else
     ISONAME=ubuntu-$(lsb_release -sr)-desktop-${ARCH}.iso
 fi
 
+RETENTION="15 days"  # Containers are purged when this period has passed
+
 usage() {
     # Display usage information
     cat <<EOF
@@ -155,10 +157,35 @@ create_container() {
 }
 
 hrule() {
-    echo "= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =" 
+    # Display a nice horizontal line
+    seq -s"_\|/" 20| tr -d [:digit:]
 }
 [ $# -eq 0 ] && usage
 
+purge_old_containers() {
+    # Remove old containers based on their name
+    # 
+    # $1: Pattern to match the container
+    # $2: Purge age in a format supported by 'date'
+    if ! date -d "$2 ago" 2>&1 >/dev/null; then
+        echo "E: Invalid date format '$2'. Aborting!"
+        return 1
+    fi
+    purge_ts=$(date -d "$2" "+%s")
+    for name in $(lxc-ls "$1"); do
+        lxcdatetime="$(echo $name | sed -e 's/.*\([0-9]\{8\}\)-\([0-9]\{2\}\)\([0-9]\{2\}\)/\1 \2:\3/')"
+        if ! date -d "$lxcdatetime" 2>&1 >/dev/null; >then
+            echo "W: Cannot identify date from string '$lxcdatetime'.  Container '$name' kept!"
+            continue
+        fi
+        lxc_ts=$(date -d "$lxcdatetime" +%s)
+        if [ $purge_ts -gt $lxc_ts ]; then
+            echo "I: -> Purging $name"
+        else
+            echo "I: Keeping $name"
+        fi    
+    done
+}
 # Safeguard
 echo -n "WARNING: This script will update and reboot your system. You have 10s to press CTRL+C "
 for i in $(seq 10); do
@@ -178,6 +205,9 @@ if [ $RC -eq 0 ]; then
     create_container $LXCNAME $ISODIR/$ISONAME
     RET=$?
     [ $RET -ne 0 ] && RC=$RET
+
+    hrule
+    purge_old_containers "$RELEASE}-${ARCH}-.*" "$RETENTION"
 fi
 
 hrule
