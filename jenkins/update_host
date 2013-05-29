@@ -29,7 +29,11 @@ OTTOCMD="$HOME/bin/otto"
 OTTOOPTS=""
 ARCH=$(dpkg --print-architecture )
 ISODIR=$HOME/iso/ubuntu
-ISONAME=$RELEASE-desktop-${ARCH}.iso
+if [ "$RELEASE" = "$(distro-info -d)" ]; then
+    ISONAME=$RELEASE-desktop-${ARCH}.iso
+else
+    ISONAME=ubuntu-$(lsb_release -sr)-desktop-${ARCH}.iso
+fi
 
 usage() {
     # Display usage information
