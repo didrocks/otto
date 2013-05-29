@@ -25,7 +25,7 @@
 
 RELEASE=$(lsb_release -sc)
 RC=0
-OTTOCMD="otto"
+OTTOCMD="$HOME/bin/otto"
 OTTOOPTS=""
 ARCH=$(dpkg --print-architecture )
 ISODIR=$HOME/iso/ubuntu
@@ -127,7 +127,7 @@ create_container() {
         echo "E: Invalid number of argument: create_container NAME IMAGE"
         return 1
     fi
-    if ! type -t $OTTOCMD; then
+    if ! which $OTTOCMD; then
         echo "E: Command '$OTTOCMD' not found. Container will not be created!"
         return 2
     fi
@@ -141,7 +141,7 @@ create_container() {
     fi
 
     echo "I: Creating container '$1' from '$2'"
-    $OTTOCMD $OTTOOPTS create -D -u $1 $2
+    sudo -E $OTTOCMD $OTTOOPTS create -D -u $1 $2
     return $?
 }
 [ $# -eq 0 ] && usage
