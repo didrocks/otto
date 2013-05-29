@@ -37,14 +37,12 @@ TESTTMP=$(mktemp -d /tmp/otto.XXXXXX)
 
 CONTAINER=""
 TESTPATH=""
-ISOPATH=""
 OTTOOPTS=""
 
 #
 # These parameters can be overridden in testsuite configuration file or the
 # environment
 #
-START_TIMEOUT=${START_TIMEOUT:-30}  # Timeout before a container starts
 TEST_TIMEOUT=${TEST_TIMEOUT:-3600}  # Timeout before considering a test failed
 LOGFILES="${LOGFILES:-}"
 ARTIFACTS="${ARTIFACTS:-}"
@@ -58,7 +56,6 @@ TESTPKGSNODEPS="${TESTPKGSNODEPS:-}"
 # General failures
 ENOROOT=1
 EFILENOTFOUND=2
-EFILENOTISO=3
 
 # Container errors
 ECONTAINERNOTFOUND=20
@@ -77,11 +74,10 @@ usage() {
 "
     fi
     cat<<EOF
-Usage: $(basename $0) [OPTIONS...] NAME ISO TESTPATH
-Run testsuite in TESTTREE the specified container NAME using ISO as rootfs
+Usage: $(basename $0) [OPTIONS...] NAME TESTPATH
+Run testsuite in TESTTREE the specified container NAME
 $msg_as_root
     NAME: Name of an existing container.
-    ISOPATH: Path to the iso to use to run the tests.
     TESTPATH: Path to a directory containing the testsuite.
 
 Options:
@@ -141,31 +137,15 @@ container_is_running() {
     return $?
 }
 
-is_iso() {
-    # Checks if file in argument is a valid ISO
-    #
-    # $1: Path to a file
-    # @return: 0 if it is 1 if not
-    if file -0b "$1" |grep "ISO 9660 CD-ROM" 2>&1 >/dev/null; then
-        return 0
-    else
-        return 1
-    fi
-}
-
 start_container() {
     # Starts a container with otto and wait until it runs
     #
     # $1: Name of the container
-    # $2: Path to the ISO
-    # $3: Path to the test directory
+    # $2: Path to the test directory
     name=$1
-    iso="$2"
-    testdir="$3"
+    testdir="$2"
 
-    $OTTOCMD $OTTOOPTS start $name --archive -i $iso -C $testdir
-
-    lxc-wait -q -n $name -s RUNNING -t $START_TIMEOUT
+    $OTTOCMD $OTTOOPTS start $name --archive -C $testdir
     return $?
 }
 
@@ -306,15 +286,6 @@ if container_is_running $CONTAINER; then
     exit
 fi
 
-if [ ! -f "$ISOPATH" ]; then
-    echo "E: Image '$ISOPATH' doesn't exist. Exiting!"
-    RC=$EFILENOTFOUND
-    exit
-elif ! is_iso $ISOPATH; then
-    echo "E: Image '$ISOPATH' is not a valid iso9660 file. Exiting!"
-    RC=$EFILENOTISO
-    exit
-fi
 #
 # Testsuite Checks
 #
@@ -341,7 +312,7 @@ fi
 
 run_hook "setup" $TESTPATH
 
-if ! start_container $CONTAINER $ISOPATH $TESTPATH; then
+if ! start_container $CONTAINER $TESTPATH; then
     echo "E: Container '$CONTAINER' failed to start. Exiting!"
     RC=$ECONTAINERSTARTFAILED
     exit
