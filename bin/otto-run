@@ -171,7 +171,7 @@ collect_results() {
         if [ -f "$log" ]; then
             cp -a $log "$rdest"
         elif [ -d "$log" ]; then
-            rsync -avH $log "$rdest"
+            rsync -aH $log "$rdest"
         fi
     done
 
@@ -354,6 +354,9 @@ collect_results $RESULTSDIR /var/local/otto
 # Artifacts and logs created by the run
 collect_results $RESULTSDIR $ARTIFACTS
 collect_results $RESULTSDIR/logs $LOGFILES
+
+echo "I: The following artifacts have been collected:"
+(cd $RESULTSDIR; find)
 
 if ! check_results $RESULTSDIR/otto/summary.log; then
     RC=$ETESTFAILED

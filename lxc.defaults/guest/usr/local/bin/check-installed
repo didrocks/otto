@@ -47,7 +47,7 @@ check_install() {
     if [ -z "$pkgs" ]; then
         exit 0
     else
-        echo "E: The following additional packages will installed:"
+        echo "E: The following additional packages will be installed:"
         echo "$pkgs"
         exit 1
     fi
