@@ -192,14 +192,12 @@ check_results() {
     summary="$1"
     if [ ! -f "$summary" ]; then
         echo "W: Summary file '$summary' not found!"
-        return 0
+        return 1
     fi
 
-    if grep -q "packages: FAIL" "$summary"; then
-        echo "E: Packages failed to install!"
-        return 1
-    elif grep -q "timeout: FAIL" "$summary"; then
-        echo "E: Test timeout!"
+    cat "$summary"
+    if grep -qw 'ERROR$' "$summary"; then
+        echo "E: A run step failed. Check summary.log for details"
         return 1
     fi
     return 0
@@ -328,7 +326,7 @@ RET=$?
 if [ $RET -gt 0 ]; then
     echo "E: Test failed to run in $TEST_TIMEOUT seconds. Aborting!"
     $OTTOCMD $OTTOOPTS stop $CONTAINER
-    echo "timeout: FAIL" >> $LXCROOT/var/local/otto/summary.log
+    echo "timeout: ERROR" >> $LXCROOT/var/local/otto/summary.log
 fi
 echo "timeout: PASS" >> $LXCROOT/var/local/otto/summary.log
 
