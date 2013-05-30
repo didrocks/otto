@@ -376,6 +376,8 @@ class Container(object):
 
     def unmountiso(self):
         """Enable unmouting the iso (used in case of failure)"""
+        if not self.config.isomount:
+            return
         logger.info("Try unmounting the iso: {}".format(self.config.isomount))
         try:
             subprocess.check_call(["umount", self.config.isomount])
