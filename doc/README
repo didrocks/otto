@@ -81,7 +81,7 @@ and start again; this is a bug we are investigating)
         -C ./example/autopilot/
 
 -> If packages failed to install the logs are located in
-/var/log/upstart/packages.log
+/var/log/upstart/otto.log
 
 = Additional Notes =
 
