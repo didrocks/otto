@@ -376,7 +376,7 @@ class Container(object):
 
     def unmountiso(self):
         """Enable unmouting the iso (used in case of failure)"""
-        logger.debug("Try unmounting the iso")
+        logger.info("Try unmounting the iso: {}".format(self.config.isomount))
         try:
             subprocess.check_call(["umount", self.config.isomount])
         except subprocess.CalledProcessError as cpe:
