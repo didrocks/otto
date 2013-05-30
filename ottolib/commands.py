@@ -169,12 +169,12 @@ class Commands(object):
             return 0
         except (ContainerError, KeyboardInterrupt) as e:
             # cleanup the container and move the container name
-            logger.error("An error in creation occur, trying to cleanup the container: {}".format(e))
+            logger.error("An error during creation occurred, trying to cleanup the container: {}".format(e))
             try:
                 logger.debug("Trying to force stopping the container")
                 self.container.stop()
             except Exception as e:
-                logger.error("Can't force stop the container: {}".format(e))
+                logger.warning("Can't force stopping the container: {}".format(e))
             finally: # TODO: why finally?
                 self.container.unmountiso()
                 with ignored(OSError):
