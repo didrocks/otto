@@ -312,6 +312,8 @@ fi
 
 run_hook "setup" $TESTPATH
 
+POSTSTOP_FLAG=$LXCBASE/$CONTAINER/.post-stop.done
+rm -f $POSTSTOP_FLAG
 if ! start_container $CONTAINER $TESTPATH; then
     echo "E: Container '$CONTAINER' failed to start. Exiting!"
     RC=$ECONTAINERSTARTFAILED
@@ -323,15 +325,31 @@ fi
 lxc-wait -q -n $CONTAINER -s STOPPED -t $TEST_TIMEOUT
 RET=$?
 
-ARCHIVE_FILE=$(ls -Art $LXCBASE/$CONTAINER/archive/ | tail -n 1)
-echo "Run archived as $ARCHIVE_FILE"
-
 if [ $RET -gt 0 ]; then
     echo "E: Test failed to run in $TEST_TIMEOUT seconds. Aborting!"
     $OTTOCMD $OTTOOPTS stop $CONTAINER
     echo "timeout: FAIL" >> $LXCROOT/var/local/otto/summary.log
 fi
 echo "timeout: PASS" >> $LXCROOT/var/local/otto/summary.log
+
+#
+# container is already stopped when post-stop hook is executed. A flag is
+# created in post-stop.sh hook to avoid a race when the archive is created
+#
+LOOP=0
+while sleep 1; do
+    LOOP=$((LOOP + 1)) 
+    if [ $LOOP -gt 300 ]; then
+        echo "E: No archive file created for this run in less than 5min!"
+        break
+    fi  
+    [ -f "$POSTSTOP_FLAG" ] && break
+done
+
+if [ -f "$POSTSTOP_FLAG" ]; then
+    ARCHIVE_FILE=$(ls -Art $LXCBASE/$CONTAINER/archive/ | tail -n 1)
+    echo "Run archived as $ARCHIVE_FILE"
+fi
 
 # We always want this directory
 collect_results $RESULTSDIR /var/local/otto

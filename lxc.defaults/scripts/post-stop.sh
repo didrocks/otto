@@ -25,6 +25,8 @@
 BASEDIR=$(dirname $LXC_CONFIG_FILE)
 RUNDIR=$BASEDIR/run
 ARCHIVE=""
+POSTSTOP_FLAG=$BASEDIR/.post-stop.done
+rm -f "$POSTSTOP_FLAG"
 
 # source run specific configuration
 CONFIG=$RUNDIR/config
@@ -56,9 +58,9 @@ unmount_fs() {
     umount $ISOMOUNT || true
 }
 
-
 unmount_fs $SQUASHFS
 
 if [ "$ARCHIVE" = "True" ] ; then
     archive
 fi
+touch "$POSTSTOP_FLAG"
