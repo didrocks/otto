@@ -21,6 +21,7 @@ Commands class - part of the project otto
 
 import argparse
 import logging
+logger = logging.getLogger(__name__)
 import os
 import subprocess
 import sys
@@ -130,7 +131,6 @@ class Commands(object):
 
         self.args = parser.parse_args()
         utils.set_logging(self.args.debug)
-        logger = logging.getLogger(__name__)
         if self.args.cmd_name == "help":
             try:
                 cmd_parsers[self.args.command].print_help()
