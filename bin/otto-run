@@ -356,7 +356,8 @@ collect_results $RESULTSDIR $ARTIFACTS
 collect_results $RESULTSDIR/logs $LOGFILES
 
 echo "I: The following artifacts have been collected:"
-(cd $RESULTSDIR; find)
+(cd $RESULTSDIR; find ./* -type f)
+echo
 
 if ! check_results $RESULTSDIR/otto/summary.log; then
     RC=$ETESTFAILED
