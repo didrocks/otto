@@ -1,0 +1,55 @@
+#!/bin/bash -eux
+
+#
+# Runs an otto job with otto-run. This script must be integrated as part of a
+# jenkins build step
+#
+# This script is part of the project Otto
+#
+
+# Copyright © 2013 Canonical Ltd.
+# Author: Jean-baptiste Lallement <jean-baptiste.lallement@canonical.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2, as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# Usual workspace cleanup
+rm -Rf "$WORKSPACE"/*
+
+# Location of the testsuite on LP and locally
+TS_BRANCH="lp:~otto-dev/otto/testsuite_autopilot-unity"
+TS_EXPORT="$WORKSPACE/testsuite"
+
+ARCH=$(dpkg --print-architecture )
+# Find newest container
+CONTAINER=$(lxc-ls "${series}-${ARCH}-*" | tail -1)
+
+if [ -z "$CONTAINER" ] ; then
+    echo "E: couldn't find containers matching '${series}-${ARCH}-*'".
+    echo "E: Containers available on this system:"
+    lxc-ls -1
+    exit 1
+fi
+
+# Export the testsuite
+bzr export $TS_EXPORT $TS_BRANCH
+
+# Set environment for Otto and match with parameters from Jenkins
+export TESTREPOS=$ppa
+export TESTPKGS=$testpackages
+export TESTPKGSNODEPS=$packages
+export TESTS=$tests
+export RESULTSDIR="${WORKSPACE}/results"
+
+# NOTE: Run otto-run with -E to preserve the environment
+sudo -E $HOME/bin/otto-run -d $CONTAINER $TS_EXPORT
