@@ -26,7 +26,7 @@
 RELEASE=$(lsb_release -sc)
 RC=0
 OTTOCMD="$HOME/bin/otto"
-OTTOOPTS="-d"
+OTTOOPTS=""
 ARCH=$(dpkg --print-architecture )
 ISODIR=$HOME/iso/ubuntu
 if [ "$RELEASE" = "$(distro-info -d)" ]; then
@@ -186,6 +186,10 @@ purge_old_containers() {
         fi    
     done
 }
+
+hrule
+echo "I: Starting job - $(date '+%F %X')"
+hrule
 # Safeguard
 echo -n "WARNING: This script will update and reboot your system. You have 10s to press CTRL+C "
 for i in $(seq 10); do
@@ -214,5 +218,9 @@ hrule
 update_system
 RET=$?
 [ $RET -ne 0 ] && RC=$RET
+
+hrule
+echo "I: Job finished - $(date '+%F %X')"
+hrule
 
 exit $RC
