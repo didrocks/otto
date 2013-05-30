@@ -29,6 +29,7 @@ from textwrap import dedent
 
 from . import const, container, utils
 from .container import ContainerError
+from .utils import ignored
 
 
 class Commands(object):
@@ -166,8 +167,19 @@ class Commands(object):
             self.container.create(imagepath, upgrade=self.args.upgrade,
                                              local_config=self.args.local_config)
             return 0
-        except ContainerError as e:
-            logger.error(e)
+        except (ContainerError, KeyboardInterrupt) as e:
+            # cleanup the container and move the container name
+            logger.error("An error in creation occur, trying to cleanup the container: {}".format(e))
+            try:
+                logger.debug("Trying to force stopping the container")
+                self.container.stop()
+            except Exception as e:
+                logger.error("Can't force stop the container: {}".format(e))
+            finally: # TODO: why finally?
+                self.container.unmountiso()
+                with ignored(OSError):
+                    os.rename(os.path.join(const.LXCBASE, self.container.name),
+                              os.path.join(const.LXCBASE, "broken.{}".format(self.container.name)))
             return 1
 
     def cmd_destroy(self):

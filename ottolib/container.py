@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 import lxc
 import os
 import shutil
+import subprocess
 import tarfile
 import time
 
@@ -83,7 +84,6 @@ class Container(object):
         TODO:
             - Override LXC configuration file or append new directives
             - Override default fstab or append new entries
-            - in case of failure, needs to umount iso, needs to rm the container entirely
         """
         logger.info("Creating container '%s'", self.name)
 
@@ -373,3 +373,11 @@ class Container(object):
 
         logger.debug("selected iso is {}, and squashfs is: {}".format(self.config.isomount,
                                                                       self.config.squashfs))
+
+    def unmountiso(self):
+        """Enable unmouting the iso (used in case of failure)"""
+        logger.debug("Try unmounting the iso")
+        try:
+            subprocess.check_call(["umount", self.config.isomount])
+        except subprocess.CalledProcessError as cpe:
+            logger.info("couldn't unmount the iso ({}): {}".format(cpe.returncode, cpe.output))
