@@ -154,7 +154,7 @@ tail_logs() {
     #
     # $@ List of log files
     for log in $@; do
-        tail -F --pid=$$ $LXCROOT/$log | mawk -Winteractive -v logfile="$log" '{print logfile":",$0}' &
+        tail -n0 -F --pid=$$ $LXCROOT/$log | mawk -Winteractive -v logfile="$log" '{print logfile":",$0}' &
     done
 }
 
