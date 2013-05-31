@@ -290,7 +290,7 @@ class Container(object):
                 pkgs = "linux-headers-generic {}\n".format(
                     drivers[vga_device["Driver"]])
                 # TODO: this shouldn't be in the guest directory
-                pkgsdir = os.path.join(self.containerpath, "tools", "guest", "var/local/otto/")
+                pkgsdir = os.path.join(self.containerpath, "tools", "guest", "var", "local", "otto", "config")
                 if not os.path.exists(pkgsdir):
                     os.makedirs(pkgsdir)
                 with open(os.path.join(pkgsdir, "00drivers.pkgs"), 'w') as fpkgs:
