@@ -208,10 +208,16 @@ if [ $RC -eq 0 ]; then
     LXCNAME=${RELEASE}-${ARCH}-$(date +%Y%m%d-%H%M)
     create_container $LXCNAME $ISODIR/$ISONAME
     RET=$?
-    [ $RET -ne 0 ] && RC=$RET
+    if [ $RET -ne 0 ]; then
+        RC=$RET
+    else
+        # On success syslog and otto-setup.log are rotated to avoid tailing
+        # them entirely when the base image is mounted inside the container
+        find /var/lib/lxc/$LXCNAME/bases/*/var/log -name "syslog" -o -name "otto-setup.log" -exec mv {} {}.init \;
+    fi
 
     hrule
-    purge_old_containers "$RELEASE}-${ARCH}-.*" "$RETENTION"
+    purge_old_containers "${RELEASE}-${ARCH}-.*" "$RETENTION"
 fi
 
 hrule
