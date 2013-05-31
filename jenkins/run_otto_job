@@ -26,6 +26,33 @@
 # Usual workspace cleanup
 rm -Rf "$WORKSPACE"/*
 
+show_dl_addr() {
+    # Display the address to download the container used to run this test
+    #
+    # $1: Name of the container
+    #
+    if [ $# -eq 0 ]; then
+        echo "E: Missing argument: <name of container>"
+        return 1
+    fi
+    name="$1"
+    ipaddr=$(ip addr show dev eth0 |grep -w inet | awk '{print $2}' | cut -d/ -f1)
+
+    if ! nc -z $ipaddr 80; then
+        echo "W: No http server running on this host"
+        return 1
+    fi
+
+    containeruri="http://$ipaddr/otto/$name"
+    cat <<EOF
+______________________________________________________________________________
+
+I: Archive of the container to run this test available for download from:
+    $containeruri
+______________________________________________________________________________
+EOF
+}
+
 # Location of the testsuite on LP and locally
 TS_BRANCH="lp:~otto-dev/otto/testsuite_autopilot-unity"
 TS_EXPORT="$WORKSPACE/testsuite"
@@ -53,3 +80,5 @@ export RESULTSDIR="${WORKSPACE}/results"
 
 # NOTE: Run otto-run with -E to preserve the environment
 sudo -E $HOME/bin/otto-run -d $CONTAINER $TS_EXPORT
+
+show_dl_addr $CONTAINER
