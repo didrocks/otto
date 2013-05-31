@@ -56,6 +56,10 @@ check_install() {
     else
         echo "E: The following additional packages will be installed:"
         echo "$pkgs"
+        echo 
+        echo "E: apt-get install --simulate failed with non-zero exit status."
+        echo "E: Output of: apt-get install --simulate $@"
+        echo "$simulate"
         exit 1
     fi
 }
