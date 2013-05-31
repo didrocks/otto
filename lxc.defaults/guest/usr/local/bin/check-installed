@@ -40,8 +40,15 @@ check_install() {
     # passed in argument are installed
     #
     # $@: list of packages
-    inst=$(apt-get install --simulate $@ 2>/dev/null|grep ^Inst|cut -d' ' -f2|sort)
-    input=$( echo $@|tr ' ' '\n' | sort)
+    simulate="$(apt-get install --simulate $@ 2>/dev/null )"
+    if [ $? -gt 0 ]; then
+        echo "E: apt-get install --simulate failed with non-zero exit status."
+        echo "E: Output of: apt-get install --simulate $@"
+        echo "$simulate"
+        exit 1
+    fi
+    inst="$( echo "$simulate" |grep ^Inst|cut -d' ' -f2|sort )"
+    input="$( echo $@|tr ' ' '\n' | sort)"
     pkgs=$(diff -u <(echo "$input" ) <(echo "$inst" )|grep -E '^\+[[:alnum:]]')
 
     if [ -z "$pkgs" ]; then
