@@ -102,7 +102,7 @@ on_exit() {
         fi
     fi
     # Cleanup temporary directories
-    #[ -d "$TESTTMP" ] && rm -Rf "$TESTTMP"
+    [ -d "$TESTTMP" ] && rm -Rf "$TESTTMP"
     exit $RC
 }
 trap on_exit EXIT INT QUIT ABRT PIPE TERM
@@ -351,7 +351,7 @@ echo
 
 if [ -f "$POSTSTOP_FLAG" ]; then
     ARCHIVE_FILE=$(ls -Art $LXCBASE/$CONTAINER/archive/ | tail -n 1)
-    echo "Run archived as $ARCHIVE_FILE"
+    echo "I: Run archived as $ARCHIVE_FILE"
 fi
 
 # We always want this directory
