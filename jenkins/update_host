@@ -213,7 +213,7 @@ if [ $RC -eq 0 ]; then
     else
         # On success syslog and otto-setup.log are rotated to avoid tailing
         # them entirely when the base image is mounted inside the container
-        find /var/lib/lxc/$LXCNAME/bases/*/var/log -name "syslog" -o -name "otto-setup.log" -exec mv {} {}.init \;
+        sudo find /var/lib/lxc/$LXCNAME/bases/*/var/log -name "syslog" -o -name "otto-setup.log" -exec mv {} {}.init \;
     fi
 
     hrule
