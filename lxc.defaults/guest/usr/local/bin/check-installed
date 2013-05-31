@@ -40,7 +40,7 @@ check_install() {
     # passed in argument are installed
     #
     # $@: list of packages
-    simulate="$(apt-get install --simulate $@ 2>/dev/null )"
+    simulate="$(apt-get install --simulate $@ 2>&1 )"
     if [ $? -gt 0 ]; then
         echo "E: apt-get install --simulate failed with non-zero exit status."
         echo "E: Output of: apt-get install --simulate $@"
