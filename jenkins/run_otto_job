@@ -74,7 +74,7 @@ bzr export $TS_EXPORT $TS_BRANCH
 # Set environment for Otto and match with parameters from Jenkins
 export TESTREPOS=$ppa
 export TESTPKGS=$testpackages
-export TESTPKGSNODEPS=$packages
+export TESTPKGSSTRICT=$packages
 export TESTS=$tests
 export RESULTSDIR="${WORKSPACE}/results"
 

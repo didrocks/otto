@@ -48,7 +48,7 @@ LOGFILES="${LOGFILES:-}"
 ARTIFACTS="${ARTIFACTS:-}"
 TESTREPOS="${TESTREPOS:-}"
 TESTPKGS="${TESTPKGS:-}"
-TESTPKGSNODEPS="${TESTPKGSNODEPS:-}"
+TESTPKGSSTRICT="${TESTPKGSSTRICT:-}"
 
 #
 # Error codes
@@ -301,7 +301,7 @@ TESTHOOKS=$TESTPATH/hooks
 # Customize the test suite with additional files
 write_file_from_var "$TESTPATH/packages/custom.repo" "$TESTREPOS"
 write_file_from_var "$TESTPATH/packages/custom.pkgs" "$TESTPKGS"
-write_file_from_var "$TESTPATH/packages/custom.pkgs.nodeps" "$TESTPKGSNODEPS"
+write_file_from_var "$TESTPATH/packages/custom.pkgs.strict" "$TESTPKGSSTRICT"
 
 if [ -f "$TESTCONFIG" ]; then
     echo "I: Loading test configuration from $TESTCONFIG"
