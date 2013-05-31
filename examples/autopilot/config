@@ -1,2 +1,2 @@
-LOGFILES="/var/log/syslog /home/ubuntu/.xsession-errors /var/log/upstart/otto.log"
+LOGFILES="/var/log/syslog /home/ubuntu/.xsession-errors"
 ARTIFACTS="/home/ubuntu /var/local/autopilot"

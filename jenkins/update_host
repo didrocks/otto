@@ -149,7 +149,7 @@ create_container() {
 
     echo "I: Creating container '$1' from '$2'"
     lxcroot=/var/lib/lxc/$1/rootfs
-    for log in /var/log/syslog /var/log/upstart/otto.log; do
+    for log in /var/log/syslog /var/log/upstart/otto-setup.log; do
         sudo tail -n0 -F --pid=$$ $lxcroot/$log | mawk -Winteractive -v logfile="$log" '{print logfile":",$0}' &
     done
     sudo -E $OTTOCMD $OTTOOPTS create -D -u $1 $2

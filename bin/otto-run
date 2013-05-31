@@ -318,7 +318,8 @@ if ! start_container $CONTAINER $TESTPATH; then
     exit
 fi
 
-[ -n "$LOGFILES" ] && tail_logs $LOGFILES
+LOGFILES="/var/log/upstart/otto-setup.log $LOGFILES"
+tail_logs $LOGFILES
 
 lxc-wait -q -n $CONTAINER -s STOPPED -t $TEST_TIMEOUT
 RET=$?
@@ -350,7 +351,7 @@ if [ -f "$POSTSTOP_FLAG" ]; then
 fi
 
 # We always want this directory
-collect_results $RESULTSDIR /var/local/otto
+collect_results $RESULTSDIR /var/local/otto/
 # Artifacts and logs created by the run
 collect_results $RESULTSDIR $ARTIFACTS
 collect_results $RESULTSDIR/logs $LOGFILES
@@ -359,6 +360,6 @@ echo "I: The following artifacts have been collected:"
 (cd $RESULTSDIR; find ./* -type f)
 echo
 
-if ! check_results $RESULTSDIR/otto/summary.log; then
+if ! check_results $RESULTSDIR/summary.log; then
     RC=$ETESTFAILED
 fi

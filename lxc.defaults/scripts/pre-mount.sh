@@ -221,9 +221,9 @@ test_setup() {
     fi
 
     # rsync packages directory to rootfs
-    mkdir -p $rootfs/var/local/otto/
+    mkdir -p $rootfs/var/local/otto/config/
     if [ -d "$RUNDIR/packages" ]; then
-        rsync -avH $RUNDIR/packages/ $rootfs/var/local/otto/
+        rsync -avH $RUNDIR/packages/ $rootfs/var/local/otto/config/
     fi
 
 }
