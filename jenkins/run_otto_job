@@ -79,6 +79,6 @@ export TESTS=$tests
 export RESULTSDIR="${WORKSPACE}/results"
 
 # NOTE: Run otto-run with -E to preserve the environment
-sudo -E $HOME/bin/otto-run -d $CONTAINER $TS_EXPORT
+sudo -E $HOME/bin/otto-run $CONTAINER $TS_EXPORT
 
 show_dl_addr $CONTAINER
