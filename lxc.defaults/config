@@ -66,4 +66,3 @@ lxc.loglevel = 1
 
 # Restrict memory usage of the container
 lxc.cgroup.memory.limit_in_bytes = 3G
-lxc.cgroup.memory.memsw.limit_in_bytes = 6G
