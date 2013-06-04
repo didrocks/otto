@@ -158,6 +158,7 @@ EOF
 
     # Creates an upstart job that copies the content of the host /run/udev to
     # the container /run/udev
+    rm -f $rootfs/etc/init/lxc-udev.override
     cat <<EOF > $rootfs/etc/init/lxc-udev.conf
 start on starting udev and started mounted-run
 script
