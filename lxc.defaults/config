@@ -65,4 +65,5 @@ lxc.cgroup.devices.allow = c 13:* rwm
 lxc.loglevel = 1
 
 # Restrict memory usage of the container
-lxc.cgroup.memory.limit_in_bytes = 3G
+lxc.cgroup.memory.limit_in_bytes = 2G
+lxc.cgroup.memory.memsw.limit_in_bytes = 2560M
