@@ -167,7 +167,7 @@ class Container(object):
         self._mountiso(os.path.join(self.containerpath, self.config.image))
         # check that the container is coherent with our deltas
         (isoid, release, arch) = utils.extract_cd_info(self.config.isomount)
-        if self.config.command != "upgrade":
+        if self.config.command != "upgrade" and self.config.iso is not None:
             logger.debug("Checking that the container is compatible with the iso.")
             if not (self.config.isoid == isoid and
                     self.config.release == release and
@@ -380,11 +380,11 @@ class Container(object):
 
     def unmountiso(self):
         """Enable unmouting the iso (used in case of failure)"""
+        # the iso wasn't mounted yet
+        if not self.config.isomount:
+            return
+        logger.info("Try unmounting the iso: {}".format(self.config.isomount))
         try:
-            logger.info("Try unmounting the iso: {}".format(self.config.isomount))
-            try:
-                subprocess.check_call(["umount", self.config.isomount])
-            except subprocess.CalledProcessError as cpe:
-                logger.info("couldn't unmount the iso ({}): {}".format(cpe.returncode, cpe.output))
-        except AttributeError:
-            pass # the iso wasn't mounted yet
+            subprocess.check_call(["umount", self.config.isomount])
+        except subprocess.CalledProcessError as cpe:
+            logger.info("couldn't unmount the iso ({}): {}".format(cpe.returncode, cpe.output))
