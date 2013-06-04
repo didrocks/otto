@@ -159,6 +159,7 @@ create_container() {
 hrule() {
     # Display a nice horizontal line
     seq -s"_" 78| tr -d [:digit:]
+    echo
 }
 [ $# -eq 0 ] && usage
 

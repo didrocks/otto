@@ -336,8 +336,8 @@ echo "timeout: PASS" >> $LXCROOT/var/local/otto/summary.log
 # created in post-stop.sh hook to avoid a race when the archive is created
 #
 LOOP=0
-echo -n "I: Waiting for creation of the archive "
-while sleep 1; do
+echo "I: Waiting for creation of the archive "
+while sleep 10; do
     echo -n "."
     LOOP=$((LOOP + 1)) 
     if [ $LOOP -gt 300 ]; then
