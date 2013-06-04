@@ -38,10 +38,10 @@ show_dl_addr() {
     name="$1"
     ipaddr=$(ip addr show dev eth0 |grep -w inet | awk '{print $2}' | cut -d/ -f1)
 
-    if ! nc -z $ipaddr 80; then
-        echo "W: No http server running on this host"
-        return 1
-    fi
+    #if ! nc -z $ipaddr 80; then
+    #    echo "W: No http server running on this host"
+    #    return 1
+    #fi
 
     containeruri="http://$ipaddr/otto/$name"
     cat <<EOF
