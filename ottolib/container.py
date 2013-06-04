@@ -93,7 +93,11 @@ class Container(object):
         # create base path a hardlink the iso
         os.makedirs(self.containerpath)
         container_imagepath = os.path.join(self.containerpath, os.path.basename(imagepath))
-        os.link(imagepath, container_imagepath)
+        try:
+            os.link(imagepath, container_imagepath)
+        except OSError:
+            # might be on a different partition, fall back to symlink then
+            os.symlink(imagepath, container_imagepath)
 
         self._mountiso(container_imagepath)
 

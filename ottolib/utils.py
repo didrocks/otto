@@ -174,7 +174,7 @@ def get_image_type(path):
         logger.warning("File '%s' does not exist!", path)
         return "error"
 
-    cmd = ["file", "-b", path]
+    cmd = ["file", "-L", "-b", path]
 
     try:
         msg = subprocess.check_output(cmd, universal_newlines=True)
