@@ -43,7 +43,7 @@ OTTOOPTS=""
 # These parameters can be overridden in testsuite configuration file or the
 # environment
 #
-TEST_TIMEOUT=${TEST_TIMEOUT:-3600}  # Timeout before considering a test failed
+TEST_TIMEOUT=${TEST_TIMEOUT:-7200}  # Timeout before considering a test failed
 LOGFILES="${LOGFILES:-}"
 ARTIFACTS="${ARTIFACTS:-}"
 TESTREPOS="${TESTREPOS:-}"
