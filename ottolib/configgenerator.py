@@ -40,12 +40,9 @@ class ConfigGenerator(object):
         if os.path.isfile(self._config_file):
             self.__load_parameters_from_file(self._config_file)
 
-    def __getattribute__(self, name):
+    def __getattr__(self, name):
         """Return None if the attr doesn't exist"""
-        try:
-            return object.__getattribute__(self, name)
-        except AttributeError:
-            return None
+        return None
 
     def __setattr__(self, name, value):
         """Ask to save if the attribute make sense to be saved."""
