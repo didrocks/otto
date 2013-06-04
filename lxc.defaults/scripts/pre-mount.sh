@@ -163,6 +163,8 @@ start on starting udev and started mounted-run
 script
     cp -Ra /var/lxc/udev /run/udev || true
     umount /var/lxc/udev || true
+
+    echo "manual" > /etc/init/lxc-udev.override
 end script
 EOF
 

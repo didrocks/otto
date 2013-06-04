@@ -42,6 +42,9 @@ On Ubuntu 13.04 (Raring Ringtail) or newer release:
     configuration file and swapaccount=1 on the kernel boot parameters (set it
     permanently in /etc/default/grub then run update-grub)
 
+  * You may also want to install apport to enable crash reporting from
+    applications inside the container.
+
 == Integration with Jenkins ==
   * Declare the node jenkins server (use the same name than hostname by
     default)
@@ -59,39 +62,41 @@ On Ubuntu 13.04 (Raring Ringtail) or newer release:
 
 = Running Otto =
 
+  * Test by copying an ISO of the latest development release or stable release
+
+    $ mkdir ~/iso/ubuntu/; cd ~/iso/ubuntu/
+    $ zsync http://cdimage.ubuntu.com/daily-live/current/saucy-desktop-amd64.iso.zsync
+    or
+    $ zsync http://releases.ubuntu.com/raring/ubuntu-13.04-desktop-amd64.iso.zsync 
+
   * Create the first container:
     
-    $ sudo bin/otto create raring-auto
+    $ sudo bin/otto create saucy-otto ~/iso/ubuntu/saucy-desktop-amd64.iso
 
-  * Test by copying one iso and start otto
+  * Start the container
+    $ sudo bin/otto -d start saucy-otto
 
-    $ cd ..  
-    $ mkdir iso; cd iso
-    $ zsync http://releases.ubuntu.com/raring/ubuntu-13.04-desktop-amd64.iso.zsync 
-    $ sudo bin/otto -d start raring-auto -i raring-desktop-amd64.iso
+-> check that everything it started normally
 
--> check that everything is started normally
-
-    $ sudo bin/otto -d stop raring-auto 
-    $ sudo bin/otto -d start raring-auto
+    $ sudo bin/otto -d stop saucy-otto
+    $ sudo bin/otto -d start saucy-otto
 
 -> the same container should restart
 
 (Note: if there is a black screen and the session doesn't start then run stop
 and start again; this is a bug we are investigating)
 
-    $ sudo bin/otto -d stop raring-auto 
+    $ sudo bin/otto -d stop saucy-otto
     $ sudo bin/otto -d start raring-auto \
-        -i /home/ubuntu/iso/raring-desktop-amd64.iso \
         -C ./example/autopilot/
 
 -> If packages failed to install the logs are located in
-/var/log/upstart/otto.log
+/var/log/upstart/ottosetup.log
 
 = Additional Notes =
 
 * nVidia: By default nvidia uses nouveau. To install the proprietary driver
-  from the package 'nvidia-current' you'll to enable (or add if it doesn't
+  from the package 'nvidia-current' you'll have to enable (or add if it doesn't
   exists) the component 'restricted' in /etc/apt/sources.list on the host and
   the guest
   
