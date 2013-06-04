@@ -37,6 +37,11 @@ On Ubuntu 13.04 (Raring Ringtail) or newer release:
     $ sudo apparmor_parser -R /etc/apparmor.d/usr.bin.lxc-start
     $ sudo ln -s /etc/apparmor.d/usr.bin.lxc-start /etc/apparmor.d/disable/
 
+  * On Ubuntu swap resource control is enable in the kernel but disabled by
+    default. To enable it make sure CONFIG_MEMCG_SWAP_ENABLED=Y is set in kernel
+    configuration file and swapaccount=1 on the kernel boot parameters (set it
+    permanently in /etc/default/grub then run update-grub)
+
 == Integration with Jenkins ==
   * Declare the node jenkins server (use the same name than hostname by
     default)
