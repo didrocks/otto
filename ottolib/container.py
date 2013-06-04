@@ -42,6 +42,8 @@ class Container(object):
 
     def __init__(self, name, create=False):
         self.name = name
+        if os.getuid() != 0:
+            raise ContainerError("You must be root to manage containers")
         self.container = lxc.Container(name)
         self.wait = self.container.wait
         self.containerpath = os.path.join(const.LXCBASE, name)
