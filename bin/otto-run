@@ -324,12 +324,13 @@ tail_logs $LOGFILES
 lxc-wait -q -n $CONTAINER -s STOPPED -t $TEST_TIMEOUT
 RET=$?
 
+TIMEOUTRES="PASS"
 if [ $RET -gt 0 ]; then
+    TIMEOUTRES="ERROR"
     echo "E: Test failed to run in $TEST_TIMEOUT seconds. Aborting!"
     $OTTOCMD $OTTOOPTS stop $CONTAINER
-    echo "timeout: ERROR" >> $LXCROOT/var/local/otto/summary.log
 fi
-echo "timeout: PASS" >> $LXCROOT/var/local/otto/summary.log
+echo "timeout: $TIMEOUTRES" >> $LXCROOT/var/local/otto/summary.log
 
 #
 # container is already stopped when post-stop hook is executed. A flag is
