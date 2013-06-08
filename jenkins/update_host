@@ -218,7 +218,7 @@ if [ $RC -eq 0 ]; then
     else
         # On success syslog and otto-setup.log are rotated to avoid tailing
         # them entirely when the base image is mounted inside the container
-        latest_base="/var/lib/lxc/$LXCNAME/bases/$(ls -d /var/lib/lxc/$LXCNAME/bases/base_* | tail -1)"
+        latest_base="$(ls -d /var/lib/lxc/$LXCNAME/bases/base_* | tail -1)"
         sudo find "$latest_base/var/log" -name "syslog" -o -name "otto-setup.log" -exec mv {} {}.init \;
         # Disable log rotation
         echo "# Log rotation disabled by Otto
