@@ -41,7 +41,7 @@ show_dl_addr() {
 
     if ! nc -z $ipaddr 80; then
         echo "W: No http server running on this host"
-        return 1
+        return 0
     fi
 
     containeruri="http://$ipaddr/otto/$name"
@@ -82,4 +82,6 @@ export RESULTSDIR="${WORKSPACE}/results"
 # NOTE: Run otto-run with -E to preserve the environment
 sudo -E $HOME/bin/otto-run $CONTAINER $TS_EXPORT
 
+set +e
 show_dl_addr $CONTAINER
+set -e
