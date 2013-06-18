@@ -182,10 +182,10 @@ test_setup() {
     # rsync packages directory to rootfs
     mkdir -p $rootfs/var/local/otto/config/
     if [ -d "$RUNDIR/packages" ]; then
-        rsync -avH --no-recursive $RUNDIR/packages/ $rootfs/var/local/otto/config/
+        rsync -avH --no-recursive $RUNDIR/packages/* $rootfs/var/local/otto/config/
         # if specific release config, overwrite with it
         if [ -d "$RUNDIR/packages/$RELEASE" ]; then
-            rsync -avH $RUNDIR/packages/$RELEASE/ $rootfs/var/local/otto/config/
+            rsync -avH $RUNDIR/packages/$RELEASE/* $rootfs/var/local/otto/config/
         fi
     fi
 
