@@ -228,6 +228,7 @@ if [ $RC -eq 0 ]; then
 
     hrule
     purge_old_containers "${RELEASE}-${ARCH}-.*" "$RETENTION"
+    purge_old_containers "broken.${RELEASE}-${ARCH}-.*" "5 days"
 fi
 
 hrule
