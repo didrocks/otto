@@ -61,6 +61,8 @@ lxc.cgroup.devices.allow = c 116:* rwm
 lxc.cgroup.devices.allow = c 4:7 rwm
 # input
 lxc.cgroup.devices.allow = c 13:* rwm
+# uinput
+lxc.cgroup.devices.allow = c 10:223 rwm
 
 lxc.loglevel = 1
 
