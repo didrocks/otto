@@ -122,6 +122,7 @@ script
     umount /var/lxc/udev || true
 
     echo "manual" > /etc/init/lxc-udev.override
+    [ ! -f "/dev/uinput" ] && mknod /dev/uinput c 10 223
 end script
 EOF
 
