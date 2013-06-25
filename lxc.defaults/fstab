@@ -5,4 +5,4 @@ sysfs           sys          sysfs defaults  0 0
 /dev/dri    dev/dri             none bind,ro
 /dev/snd    dev/snd             none bind,ro
 /dev/input  dev/input           none bind,ro
-/dev/uinput  dev/uinput         none bind,ro
+#/dev/uinput dev/uinput          none bind,ro
