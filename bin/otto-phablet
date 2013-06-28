@@ -310,8 +310,8 @@ prepare_phablet() {
     # Untar on the other side
     exec_with_adb tar xmzf tmp/$(basename ${testtmp}).tgz
 
-
     # Run phablet-prepare.sh
+    exec_with_adb $testtmp/phablet-prepare.sh
 }
 
 prepare_phablet $TESTTMP/
