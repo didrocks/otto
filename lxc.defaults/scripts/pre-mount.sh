@@ -160,8 +160,21 @@ EOF
     #fi
 
     # Enable autologin
-    if ! grep -q "autologin-user" $rootfs/etc/lightdm/lightdm.conf; then
-        echo "autologin-user=$username" >> $rootfs/etc/lightdm/lightdm.conf
+    lightdmconf="etc/lightdm/lightdm.conf"
+    autologinconf="etc/lightdm/lightdm.conf.d/99-autologin.conf"
+    if [ -d "$rootfs/$(dirname $autologinconf)" ]; then
+        cat <<EOF >$rootfs/$autologinconf
+[SeatDefaults]
+autologin-user=ubuntu
+EOF
+    elif ! grep -q "autologin-user" $rootfs/$lightdmconf; then
+        echo "autologin-user=$username" >> $rootfs/$lightdmconf
+    else
+        cat <<EOF >$rootfs/$lightdmconf
+[SeatDefaults]
+greeter-session=unity-greeter
+autologin-user=ubuntu
+EOF
     fi
 }
 
