@@ -41,10 +41,10 @@ check_install() {
     #
     # $@: list of packages
     simulate="$(apt-get install --simulate $@ 2>&1 )"
+    echo "Output of: apt-get install --simulate $@"
+    echo "$simulate"
     if [ $? -gt 0 ]; then
         echo "E: apt-get install --simulate failed with non-zero exit status."
-        echo "E: Output of: apt-get install --simulate $@"
-        echo "$simulate"
         exit 1
     fi
     inst="$( echo "$simulate" |grep ^Inst|cut -d' ' -f2|sort )"
@@ -58,8 +58,6 @@ check_install() {
         echo "$pkgs"
         echo 
         echo "E: apt-get install --simulate failed with non-zero exit status."
-        echo "E: Output of: apt-get install --simulate $@"
-        echo "$simulate"
         exit 1
     fi
 }
