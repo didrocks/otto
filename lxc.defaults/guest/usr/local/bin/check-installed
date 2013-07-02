@@ -65,6 +65,7 @@ check_install() {
     fi
 }
 
+echo "I: Checking packages requirements"
 # Do not fail when no argument is provided
 if [ $# -eq 0 ]; then
     echo "W: No package provided, exiting!"
