@@ -42,7 +42,10 @@ check_install() {
     # $@: list of packages
     simulate="$(apt-get install --simulate $@ 2>&1 )"
     echo "Output of: apt-get install --simulate $@"
-    echo "$simulate"
+    # Tail removes the notice displayed because we don't run as root
+    echo "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+    apt-get install --simulate -qq -o Debug::pkgDepCache::AutoInstall=true $@|tail -n+5
+    echo "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
     if [ $? -gt 0 ]; then
         echo "E: apt-get install --simulate failed with non-zero exit status."
         exit 1
