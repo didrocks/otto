@@ -201,8 +201,13 @@ class Container(object):
         self._copy_otto_files()
 
         logger.info("Starting container '{}'".format(self.name))
-        if not self.container.start():
-            raise ContainerError("Can't start lxc container")
+        try:
+            cmd="lxc-start -n {}".format(self.name)
+            subprocess.check_call(cmd.split())
+        except subprocess.CalledProcessError as cpe:
+            raise ContainerError("Can't start lxc container ({}): {}".format(cpe.returncode, cpe.output))
+        #if not self.container.start():
+        #    raise ContainerError("Can't start lxc container")
 
         # Wait for the container to start
         self.container.wait('RUNNING', const.START_TIMEOUT)
