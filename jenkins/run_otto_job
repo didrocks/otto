@@ -55,7 +55,7 @@ EOF
 }
 
 # Location of the testsuite on LP and locally
-TS_BRANCH="lp:~otto-dev/otto/testsuite_autopilot-unity"
+TS_BRANCH="${TS_BRANCH:-lp:~otto-dev/otto/testsuite_autopilot-unity}"
 TS_EXPORT="$WORKSPACE/testsuite"
 
 ARCH=$(dpkg --print-architecture )
