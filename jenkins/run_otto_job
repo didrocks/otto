@@ -73,10 +73,11 @@ fi
 bzr export $TS_EXPORT $TS_BRANCH
 
 # Set environment for Otto and match with parameters from Jenkins
-export TESTREPOS="ppa:$ppa"
-export TESTPKGS=$testpackages
-export TESTPKGSSTRICT=$packages
-export TESTS=$tests
+ppa="${ppa:-}"
+[ -n "$ppa" ] && export TESTREPOS="ppa:$ppa"
+export TESTPKGS="${testpackages:-}"
+export TESTPKGSSTRICT="${packages:-}"
+export TESTS="${tests:-}"
 export RESULTSDIR="${WORKSPACE}/results"
 
 # NOTE: Run otto-run with -E to preserve the environment
