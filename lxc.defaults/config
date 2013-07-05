@@ -10,6 +10,7 @@ lxc.pivotdir = lxc_putold
 lxc.hook.pre-start = /var/lib/lxc/${NAME}/tools/scripts/pre-start.sh
 lxc.hook.pre-mount = /var/lib/lxc/${NAME}/tools/scripts/pre-mount.sh
 lxc.hook.post-stop = /var/lib/lxc/${NAME}/tools/scripts/post-stop.sh
+lxc.hook.mount = /usr/share/lxc/hooks/mountcgroups
 
 lxc.devttydir = lxc
 lxc.tty = 4
@@ -22,7 +23,7 @@ lxc.cap.drop = sys_module mac_admin mac_override
 # When using LXC with apparmor, uncomment the next line to run unconfined:
 #lxc.aa_profile = unconfined
 
-lxc.cgroup.devices.deny = a
+#lxc.cgroup.devices.deny = a
 # Allow any mknod (but not using the node)
 lxc.cgroup.devices.allow = c *:* m
 lxc.cgroup.devices.allow = b *:* m
