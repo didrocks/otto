@@ -41,12 +41,13 @@ check_install() {
     #
     # $@: list of packages
     simulate="$(apt-get install --simulate $@ 2>&1 )"
+    rc=$?
     echo "Output of: apt-get install --simulate $@"
     # Tail removes the notice displayed because we don't run as root
     echo "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
     apt-get install --simulate -qq -o Debug::pkgDepCache::AutoInstall=true $@|tail -n+5
     echo "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
-    if [ $? -gt 0 ]; then
+    if [ $rc -gt 0 ]; then
         echo "E: apt-get install --simulate failed with non-zero exit status."
         exit 1
     fi
@@ -60,7 +61,6 @@ check_install() {
         echo "E: The following additional packages will be installed:"
         echo "$pkgs"
         echo 
-        echo "E: apt-get install --simulate failed with non-zero exit status."
         exit 1
     fi
 }
