@@ -51,7 +51,7 @@ check_install() {
         echo "E: apt-get install --simulate failed with non-zero exit status."
         exit 1
     fi
-    inst="$( echo "$simulate" |awk '/Inst \S+ \(/ {print $2}'|sort )"
+    inst="$( echo "$simulate" |awk '/Inst / {print $2}'|sort )"
     input="$( echo $@|tr ' ' '\n' | sort)"
     pkgs=$(diff -u <(echo "$input" ) <(echo "$inst" )|grep -E '^\+[[:alnum:]]')
 
