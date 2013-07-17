@@ -288,15 +288,16 @@ prepare_phablet() {
     # 
     # $1: Path to the directory containing the testsuite to deploy on the device
 
-    if [ $@ -ne 1 ]; then
+    if [ $# -ne 1 ]; then
         echo "E: Wrong number of arguments. Path to testsuite is missing, exiting!"
         exit $ETESTNOTFOUND
     fi
 
     testtmp=$(readlink -f $1)
+    testname=$(basename $TESTPATH)
     # Now copy phablet specific bits to temporary location
     GUESTDIR=$BINDIR/../lxc.defaults
-    [ -d "$GUESTDIR/guest/" ] && rsync -aH $GUESTDIR/guest/ $testtmp/$(basename $TESTPATH)/target-override/
+    [ -d "$GUESTDIR/guest/" ] && rsync -aH $GUESTDIR/guest/ $testtmp/$testname/target-override/
     if [ -f "$GUESTDIR/scripts/phablet-prepare.sh" ]; then
         cp -a $GUESTDIR/scripts/phablet-prepare.sh $testtmp/
         chmod +x $testtmp/phablet-prepare.sh
@@ -311,7 +312,7 @@ prepare_phablet() {
     exec_with_adb tar xmzf tmp/$(basename ${testtmp}).tgz
 
     # Run phablet-prepare.sh
-    exec_with_adb $testtmp/phablet-prepare.sh
+    exec_with_adb $testtmp/phablet-prepare.sh $testname
 }
 
 prepare_phablet $TESTTMP/

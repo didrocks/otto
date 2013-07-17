@@ -21,175 +21,128 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-echo "I: Running preparation script: $0"
-exit 0
+echo "I: Running preparation script: $0 $@"
 
-BASEDIR=$(dirname $LXC_CONFIG_FILE)
-RUNDIR=$BASEDIR/run
-rootfs=$LXC_ROOTFS_PATH
-TESTUSER=ubuntu
+BASEDIR=$(dirname $(readlink -f $0))
+TESTUSER=phablet
 
-APT_ARCHIVE=""
+APT_ARCHIVE="http://ports.ubuntu.com/ubuntu-ports/"
 DISABLE_NETWORK_MANAGER=""
 PROXY=""
 
-# source run specific configuration
-CONFIG=$RUNDIR/config
-LOCAL_CONFIG=$RUNDIR/config.local
-if [ ! -r "$CONFIG" ]; then
-    echo "E: No configuration found on $CONFIG. It means you never ran otto start."
+if [ $# -eq 0 ]; then
+    echo "E: testname missing. Exiting!"
     exit 1
 fi
-. $CONFIG
+TESTNAME=$1
+TESTDIR=$BASEDIR/$TESTNAME
+if [ ! -d "$TESTDIR" ]; then
+    echo "E: Directory not found or is not a directory: $TESTDIR . Exiting!"
+    exit 1
+fi
 
-if [ -r "$LOCAL_CONFIG" ]; then
-    . $LOCAL_CONFIG
+# source run specific configuration
+CONFIG=$BASEDIR/config
+if [ -r "$CONFIG" ]; then
+    . $CONFIG
 fi
 
 
 prepare_user() {
     # Creates the user in the container and set its privileges
-    # $1: Username
+    #
+    # This function checks that the test user exists and creates it if it does
+    # not. It also adds it to sudoers without password and adds the ssh keys
+    #
+    # Args:
+    #   $1: Username
     username="$1"
-    chroot $rootfs useradd --create-home -s /bin/bash $username || true
+    echo "I: Configuring user $username"
+    useradd --create-home -s /bin/bash $username || true
     if ! user_exists $username; then
         echo "E: Creation of user '$username' failed. Exiting!"
         exit 1
     fi
 
-    # Adds the user to the 'video' group as ACLs will not work in the
-    # container on bind-mounted devices
-    chroot $rootfs adduser $username video || true
-    echo "$username:$username" | chroot $rootfs chpasswd || true
-    echo "$username ALL=(ALL) NOPASSWD:ALL" > $rootfs/etc/sudoers.d/$username
+    echo "$username:$username" | chpasswd || true
+    echo "$username ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$username
 
-    # $HOME/.local is set to 0600 on the ISO, change it to something useful
-    dotlocal=$rootfs/home/$username/.local
-    [ ! -d "$dotlocal" ] && mkdir $dotlocal
-    chroot $rootfs chown $username:$username /home/$username/.local/
-    chmod 0755 $dotlocal
+    # TODO Adds ssh keys
 }
 
 configure_system() {
+    # Various configuration steps
+    #
     # Configure the last bits of the system:
-    #  - hosts, hostname and networking
     #  - Sources list
     #  - Locale
-    #  - Prepares udev
-    #  - Disabled whoopsie and enable autologin
     #
-    # $1: username
+    # Args:
+    #   $1: username
+    echo "I: Configuring system"
     username=$1
     if ! user_exists $username; then
         echo "E: User '$username' doesn't exist. Exiting!"
         exit 1
     fi
 
-    # Sets hostname
-    hostname=$LXC_NAME
-    echo "$hostname" > $rootfs/etc/hostname
-    cat <<EOF > $rootfs/etc/hosts
-127.0.0.1   localhost
-127.0.1.1   $hostname
-
-# The following lines are desirable for IPv6 capable hosts
-::1     ip6-localhost ip6-loopback
-fe00::0 ip6-localnet
-ff00::0 ip6-mcastprefix
-ff02::1 ip6-allnodes
-ff02::2 ip6-allrouters
-EOF
-
     if [ -z "$APT_ARCHIVE" ] ; then
-        APT_ARCHIVE="http://archive.ubuntu.com/ubuntu"
+        APT_ARCHIVE="http://ports.ubuntu.com/ubuntu-ports/"
     fi
 
     # Adds custom sources list as universe is not enabled on image by default
-    cat <<EOF > $rootfs/etc/apt/sources.list
+    cat <<EOF > /etc/apt/sources.list
 deb $APT_ARCHIVE $RELEASE main restricted universe multiverse
 deb $APT_ARCHIVE $RELEASE-updates main restricted universe multiverse
 deb $APT_ARCHIVE $RELEASE-security main restricted universe multiverse
 EOF
 
     # Setup a decent locale
-    chroot $rootfs locale-gen en_US.UTF-8
-    chroot $rootfs update-locale LANG=en_US.UTF-8
-
-    # Creates an upstart job that copies the content of the host /run/udev to
-    # the container /run/udev
-    rm -f $rootfs/etc/init/lxc-udev.override
-    cat <<EOF > $rootfs/etc/init/lxc-udev.conf
-start on starting udev and started mounted-run
-script
-    cp -Ra /var/lxc/udev /run/udev || true
-    umount /var/lxc/udev || true
-
-    echo "manual" > /etc/init/lxc-udev.override
-    [ ! -f "/dev/uinput" ] && mknod /dev/uinput c 10 223
-end script
-EOF
-
-    # Setup the network interface and disable network-manager
-    if ! grep -q "auto eth0"  $rootfs/etc/network/interfaces; then
-        cat <<EOF >> $rootfs/etc/network/interfaces
-
-auto eth0
-iface eth0 inet dhcp
-EOF
-    fi
-
-    # disable network manager
-    if [ "$DISABLE_NETWORK_MANAGER" != "FALSE" ]; then
-        echo "manual" > $rootfs/etc/init/network-manager.override
-    fi
+    locale-gen en_US.UTF-8
+    update-locale LANG=en_US.UTF-8
 
     # Use optional proxy
     if [ ! -z "$PROXY" ]; then
-        cat <<EOF > $rootfs/etc/apt/apt.conf.d/99otto
+        cat <<EOF > /etc/apt/apt.conf.d/99otto
 Acquire::http::proxy "$PROXY";
 Acquire::https::proxy "$PROXY";
 EOF
-        if ! grep -q "http_proxy" $rootfs/etc/environment; then
-            echo "http_proxy=$PROXY" >> $rootfs/etc/environment
-            echo "https_proxy=$PROXY" >> $rootfs/etc/environment
+        if ! grep -q "http_proxy" /etc/environment; then
+            echo "http_proxy=$PROXY" >> /etc/environment
+            echo "https_proxy=$PROXY" >> /etc/environment
         fi
-    fi
-
-    # Disable Whoopsie
-    # Apport doesn't work in LXC containers because it does not have access to
-    # /proc
-    #if [ -r $rootfs/etc/default/whoopsie ]; then
-    #    sed -i "s/report_crashes=true/report_crashes=false/" $rootfs/etc/default/whoopsie
-    #fi
-
-    # Enable autologin
-    if ! grep -q "autologin-user" $rootfs/etc/lightdm/lightdm.conf; then
-        echo "autologin-user=$username" >> $rootfs/etc/lightdm/lightdm.conf
     fi
 }
 
 test_setup() {
     # Additional steps to prepare the testing environment
-    # $1: user
+    #
+    # This function executes additional steps to prepare the testing
+    # environment and syncs the test payload to the target system.
+    #
+    # Args:
+    #   $1: user
+    #   $2: test directory
+    echo "I: Running test setup"
+    if [ $# -ne 2 ]; then
+        echo "E: Wrong number of arguments"
+        exit 1
+    fi
     user=$1
+    testdir=$2
 
-    # rsync default files to the container essentially to install new packages
-    if [ -d $BASEDIR/tools/guest/ ]; then
-        rsync -avH $BASEDIR/tools/guest/ $rootfs/
+    # rsync custom-installation directory to /
+    if [ -d "$testdir/target-override" ]; then
+        rsync -avH $testdir/target-override/ /
     fi
 
-    # rsync custom-installation directory to rootfs
-    if [ -d "$RUNDIR/target-override" ]; then
-        rsync -avH $RUNDIR/target-override/ $rootfs/
-    fi
-
-    # rsync packages directory to rootfs
-    mkdir -p $rootfs/var/local/otto/config/
+    # rsync packages directory to otto directory
+    mkdir -p /var/local/otto/config/
     if [ -d "$RUNDIR/packages" ]; then
-        rsync -avH --no-recursive $RUNDIR/packages/* $rootfs/var/local/otto/config/
+        rsync -avH --no-recursive $RUNDIR/packages/* /var/local/otto/config/
         # if specific release config, overwrite with it
         if [ -d "$RUNDIR/packages/$RELEASE" ]; then
-            rsync -avH $RUNDIR/packages/$RELEASE/* $rootfs/var/local/otto/config/
+            rsync -avH $RUNDIR/packages/$RELEASE/* /var/local/otto/config/
         fi
     fi
 
@@ -198,7 +151,7 @@ test_setup() {
 user_exists() {
     # Checks if a user exists
     # $1: Username
-    if ! chroot $rootfs getent passwd "$1" 2>/dev/null>/dev/null; then
+    if ! getent passwd "$1" 2>/dev/null>/dev/null; then
         return 1
     else
         return 0
@@ -207,4 +160,4 @@ user_exists() {
 
 prepare_user $TESTUSER
 configure_system $TESTUSER
-test_setup $TESTUSER
+test_setup $TESTUSER $TESTDIR
