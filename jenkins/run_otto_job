@@ -1,4 +1,4 @@
-#!/bin/bash -eu
+#!/bin/bash -u
 
 #
 # Runs an otto job with otto-run. This script must be integrated as part of a
