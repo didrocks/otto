@@ -1,4 +1,4 @@
-#!/bin/bash -u
+#!/bin/bash -eu
 
 #
 # Runs an otto job with otto-run. This script must be integrated as part of a
@@ -81,8 +81,8 @@ export TESTS="${tests:-}"
 export RESULTSDIR="${WORKSPACE}/results"
 
 # NOTE: Run otto-run with -E to preserve the environment
+set +e
 sudo -E $HOME/bin/otto-run $CONTAINER $TS_EXPORT
 
-set +e
 show_dl_addr $CONTAINER
 set -e
