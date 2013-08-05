@@ -35,7 +35,7 @@ else
     ISONAME=ubuntu-$(lsb_release -sr)-desktop-${ARCH}.iso
 fi
 
-RETENTION="15 days"  # Containers are purged when this period has passed
+RETENTION="10 days"  # Containers are purged when this period has passed
 
 usage() {
     # Display usage information
