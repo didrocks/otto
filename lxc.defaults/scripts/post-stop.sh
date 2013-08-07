@@ -25,6 +25,8 @@
 BASEDIR=$(dirname $LXC_CONFIG_FILE)
 RUNDIR=$BASEDIR/run
 ARCHIVE=""
+COMPRESSPROG="$(which pigz 2>/dev/null)" || true
+[ -z "$COMPRESSPROG" ] && echo "W: pigz is not installed, falling back to gzip" && COMPRESSPROG=gzip
 POSTSTOP_FLAG=$BASEDIR/.post-stop.done
 rm -f "$POSTSTOP_FLAG"
 
@@ -46,7 +48,7 @@ archive() {
     mkdir -p "$ARCHIVEDIR"
     previous_dir=$(pwd)
     cd $RUNDIR
-    tar -czf "$ARCHIVEDIR/$ISOID.$RUNID.otto" .
+    tar cf "$ARCHIVEDIR/$ISOID.$RUNID.otto" -I $COMPRESSPROG --exclude="delta/tmp/rMD*" .
     cd $previous_dir
 }
 

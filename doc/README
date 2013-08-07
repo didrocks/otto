@@ -64,7 +64,7 @@ On Ubuntu 13.04 (Raring Ringtail) or newer release:
 
   * Test by copying an ISO of the latest development release or stable release
 
-    $ mkdir ~/iso/ubuntu/; cd ~/iso/ubuntu/
+    $ mkdir -p ~/iso/ubuntu/; cd ~/iso/ubuntu/
     $ zsync http://cdimage.ubuntu.com/daily-live/current/saucy-desktop-amd64.iso.zsync
     or
     $ zsync http://releases.ubuntu.com/raring/ubuntu-13.04-desktop-amd64.iso.zsync 
