@@ -286,6 +286,7 @@ class Container(object):
         # driver -> packages to install
         drivers = {
             "fglrx": "fglrx",
+            "fglrx_pci": "fglrx",
             "nvidia": "nvidia-current"
         }
         if vga_device is not None and "Driver" in vga_device:
