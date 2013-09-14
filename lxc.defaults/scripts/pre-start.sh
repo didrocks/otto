@@ -98,3 +98,11 @@ prepare_fs() {
 
 prepare_fs $SQUASHFS
 
+# TODO: Apply this change on host boot; via setting /sys/fs/cgroup/memory/memory.use_hierarchy
+## Enable memory limits
+#if [ -e "/sys/fs/cgroup/memory/lxc/memory.use_hierarchy" ]; then
+#    echo 1 > /sys/fs/cgroup/memory/lxc/memory.use_hierarchy
+#else
+#    echo "/sys/fs/cgroup/memory/lxc/memory.use_hierarchy not found! Memory limits is disabled!"
+#fi
+
