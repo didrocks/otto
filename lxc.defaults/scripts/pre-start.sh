@@ -98,9 +98,3 @@ prepare_fs() {
 
 prepare_fs $SQUASHFS
 
-# Enable memory limits
-if [ -e "/sys/fs/cgroup/memory/lxc/memory.use_hierarchy" ]; then
-    echo 1 > /sys/fs/cgroup/memory/lxc/memory.use_hierarchy
-else
-    echo "/sys/fs/cgroup/memory/lxc/memory.use_hierarchy not found! Memory limits is disabled!"
-fi
