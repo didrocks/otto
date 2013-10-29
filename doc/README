@@ -23,18 +23,17 @@ On Ubuntu 13.04 (Raring Ringtail) or newer release:
     $ sudo apt-get install bzr --no-install-recommends
     $ sudo apt-get install python3-lxc aufs-tools
 
-  * branch otto from launchpad and setup a ~/bin directory
-
-    $ bzr branch lp:otto
+  * If you don't want to call otto with the full path of the checkout, you
+    can put it into $PATH with (running in your otto checkout/branch):
     $ mkdir ~/bin
-    $ cd ~/bin
-    $ ln -s ~/otto/bin/* .
+    $ for f in `pwd`/otto/bin/*; do ln -s $f ~/bin; done
 
   * Try to run otto:
     $ sudo bin/otto --help
 
-  * You'll need to run lxc-start unconfined to allow mounting /dev/loop0 
-    during the pre-start hook
+  * You'll need to run lxc-start unconfined to allow mounting /dev/loop0
+    during the pre-start hook (which is required to boot from a desktop
+    image):
 
     $ sudo apparmor_parser -R /etc/apparmor.d/usr.bin.lxc-start
     $ sudo ln -s /etc/apparmor.d/usr.bin.lxc-start /etc/apparmor.d/disable/
@@ -42,8 +41,12 @@ On Ubuntu 13.04 (Raring Ringtail) or newer release:
 
   * On Ubuntu swap resource control is enable in the kernel but disabled by
     default. To enable it make sure CONFIG_MEMCG_SWAP_ENABLED=Y is set in kernel
-    configuration file and swapaccount=1 on the kernel boot parameters (set it
-    permanently in /etc/default/grub then run update-grub). 
+    configuration file:
+    $ grep MEMCG /boot/config-`uname -r`
+    Set swapaccount=1 on the kernel boot parameters (set it
+    permanently in /etc/default/grub then run update-grub) to get:
+    $ grep GRUB_CMDLINE_LINUX_DEFAULT /etc/default/grub
+    GRUB_CMDLINE_LINUX_DEFAULT="quiet swapaccount=1"
 
   * You may also want to install apport to enable crash reporting from
     applications inside the container.
@@ -66,8 +69,7 @@ On Ubuntu 13.04 (Raring Ringtail) or newer release:
   * Verify that the node becomes online on the server.
   * Follow the steps described in the previous section (Installation) as user
     'jenkins' instead of 'ubuntu'. And add symlinks for the jenkins scripts.
-    $ cd ~/bin
-    $ ln -s ~/otto/jenkins/* .
+    $ for f in `pwd`/otto/jenkins/*; do ln -s $f ~/bin; donecd ~/bin
  
 
 = Running Otto =
