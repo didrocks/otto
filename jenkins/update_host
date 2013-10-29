@@ -46,7 +46,7 @@ it on your machine.
 
 This script downloads an Ubuntu Desktop ISO from the given URL for the release
 and architecture matching the host system.  Then the system is upgraded and
-rebooted.
+rebooted (if needed).
 
 EOF
     exit 1

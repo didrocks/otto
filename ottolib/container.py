@@ -73,7 +73,7 @@ class Container(object):
         required and replaced by using an Ubuntu image directly.
         It creates the minimum files required by LXC to be a valid container:
         rootfs/, config and fstab, copies a pre-mount script that is used
-        during when the container starts to prepare the container to run from
+        when the container starts to prepare the container to run from
         a disk image and share the devices from the host. The directory guest
         will be rsynced to the guest FS by the pre-mount script to install
         additional packages into the container.

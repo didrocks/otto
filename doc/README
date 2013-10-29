@@ -23,10 +23,12 @@ On Ubuntu 13.04 (Raring Ringtail) or newer release:
     $ sudo apt-get install bzr --no-install-recommends
     $ sudo apt-get install python3-lxc aufs-tools
 
-  * branch otto from launchpad
+  * branch otto from launchpad and setup a ~/bin directory
 
     $ bzr branch lp:otto
-    $ cd otto
+    $ mkdir ~/bin
+    $ cd ~/bin
+    $ ln -s ~/otto/bin/* .
 
   * Try to run otto:
     $ sudo bin/otto --help
@@ -36,21 +38,26 @@ On Ubuntu 13.04 (Raring Ringtail) or newer release:
 
     $ sudo apparmor_parser -R /etc/apparmor.d/usr.bin.lxc-start
     $ sudo ln -s /etc/apparmor.d/usr.bin.lxc-start /etc/apparmor.d/disable/
+    $ sudo ln -s /etc/apparmor.d/usr.bin.rsyslogd /etc/apparmor.d/disable/
 
   * On Ubuntu swap resource control is enable in the kernel but disabled by
     default. To enable it make sure CONFIG_MEMCG_SWAP_ENABLED=Y is set in kernel
     configuration file and swapaccount=1 on the kernel boot parameters (set it
-    permanently in /etc/default/grub then run update-grub)
+    permanently in /etc/default/grub then run update-grub). 
 
   * You may also want to install apport to enable crash reporting from
     applications inside the container.
 
 == Integration with Jenkins ==
-  * Declare the node jenkins server (use the same name than hostname by
+  * Declare the node on the jenkins server (use the same name than hostname by
     default)
   * install jenkins-slave
     $ sudo apt-get install --no-install-recommends jenkins-slave
   * Add user 'jenkins' to /etc/sudoers
+    # cat <<EOF >/etc/sudoers.d/jenkins
+    jenkins ALL=(ALL) NOPASSWD: ALL
+    EOF
+    # chmod 440 /etc/sudoers.d/jenkins
   * Edit jenkins-slave configuration in /etc/default/jenkins-slave and set the
     URL of the server. You can also set the name of the slave if you do not
     want to use the default (hostname)
@@ -58,7 +65,10 @@ On Ubuntu 13.04 (Raring Ringtail) or newer release:
     $ sudo start jenkins-slave
   * Verify that the node becomes online on the server.
   * Follow the steps described in the previous section (Installation) as user
-    'jenkins' instead of 'ubuntu'.
+    'jenkins' instead of 'ubuntu'. And add symlinks for the jenkins scripts.
+    $ cd ~/bin
+    $ ln -s ~/otto/jenkins/* .
+ 
 
 = Running Otto =
 
