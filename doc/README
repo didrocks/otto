@@ -110,7 +110,15 @@ and start again; this is a bug we are investigating)
   from the package 'nvidia-current' you'll have to enable (or add if it doesn't
   exists) the component 'restricted' in /etc/apt/sources.list on the host and
   the guest
-  
+
+= Memory limits, why ? =
+
+Configuring memory limits is required in production to keep control of the
+machines if a test goes crazy. It occurred a lot during Saucy cycle due to
+memory fragmentation caused by recordmydesktop on long running testsuite
+like Unity. Without this directive OOM killer simply kills anything on the
+machine instead of just processes in the container.
+
 = Origin of the name =
 This tool has originally been written to replace UTAH [1] to run autopilot [2]
 tests of Ubuntu Unity and other stacks running with Unity. The name "Otto"
