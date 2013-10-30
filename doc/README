@@ -69,7 +69,7 @@ On Ubuntu 13.04 (Raring Ringtail) or newer release:
   * Verify that the node becomes online on the server.
   * Follow the steps described in the previous section (Installation) as user
     'jenkins' instead of 'ubuntu'. And add symlinks for the jenkins scripts.
-    $ for f in `pwd`/otto/jenkins/*; do ln -s $f ~/bin; donecd ~/bin
+    $ for f in `pwd`/otto/jenkins/*; do ln -s $f ~/bin; done
  
 
 = Running Otto =
