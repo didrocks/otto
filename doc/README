@@ -23,6 +23,14 @@ On Ubuntu 13.04 (Raring Ringtail) or newer release:
     $ sudo apt-get install bzr --no-install-recommends
     $ sudo apt-get install python3-lxc aufs-tools
 
+    On 14.04 (Trusty Tahr):
+
+    $ sudo chmod 755 /var/cache/lxc
+    $ sudo chmod 755 /var/lib/lxc
+
+    See https://bugs.launchpad.net/ubuntu/+source/lxc/+bug/1244635 for
+    rationale.
+
   * If you don't want to call otto with the full path of the checkout, you
     can put it into $PATH with (running in your otto checkout/branch):
     $ mkdir ~/bin
