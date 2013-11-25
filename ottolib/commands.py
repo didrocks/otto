@@ -70,7 +70,7 @@ class Commands(object):
                                   "image will be extracted and used as rootfs")
         pcreate.add_argument("--local-config",
                             default=None,
-                            help="Use a local configuration file. This one will be reuse until you specify --no-local-config")
+                            help="Use a local configuration file. This one will be reused until you specify --no-local-config")
         pcreate.add_argument('-D', '--force-disconnect', action='store_true',
                             default=False,
                             help="Forcibly shutdown lightdm even if a session "
@@ -106,7 +106,7 @@ class Commands(object):
                             help="Restore a previous the run state from an archive")
         pstart.add_argument("--local-config",
                             default=None,
-                            help="Use a local configuration file. This one will be reuse until you specify --no-local-config")
+                            help="Use a local configuration file. This one will be reused until you specify --no-local-config")
         pstart.add_argument("--no-local-config", action='store_true',
                             default=None,
                             help="Remove previously used local configuration file.")
