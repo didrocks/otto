@@ -168,6 +168,7 @@ def get_image_type(path):
     # signature -> type
     imgtypes = {
         "# ISO 9660 CD-ROM filesystem": "iso9660",
+        "x86 boot sector"; "iso9660",
         "Squashfs filesystem": "squashfs"
     }
     if not os.path.isfile(path):
