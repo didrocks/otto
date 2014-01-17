@@ -115,7 +115,7 @@ container_exists() {
     #
     # $1 : Name of the container
     # @return: 0 if exists 1 otherwise
-    if lxc-ls "$1" | grep -qw "$1"; then 
+    if sudo lxc-ls "$1" | grep -qw "$1"; then 
         return 0
     else
         return 1
@@ -176,7 +176,7 @@ purge_old_containers() {
 
     purge_ts=$(date -d "$purge_date" "+%s")
     echo "Purging containers older than $(date -d "$purge_date")"
-    for name in $(lxc-ls "$1"); do
+    for name in $(sudo lxc-ls "$1"); do
         lxcdatetime="$(echo $name | sed -e 's/.*\([0-9]\{8\}\)-\([0-9]\{2\}\)\([0-9]\{2\}\)/\1 \2:\3/')"
         if ! date -d "$lxcdatetime" 2>&1 >/dev/null; then
             echo "W: Cannot identify date from string '$lxcdatetime'.  Container '$name' kept!"

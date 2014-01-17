@@ -60,12 +60,12 @@ TS_EXPORT="$WORKSPACE/testsuite"
 
 ARCH=$(dpkg --print-architecture )
 # Find newest container
-CONTAINER=$(lxc-ls "${series}-${ARCH}-*" | tail -1)
+CONTAINER=$(sudo lxc-ls "${series}-${ARCH}-*" | tail -1)
 
 if [ -z "$CONTAINER" ] ; then
     echo "E: couldn't find containers matching '${series}-${ARCH}-*'".
     echo "E: Containers available on this system:"
-    lxc-ls -1
+    sudo lxc-ls -1
     exit 1
 fi
 
