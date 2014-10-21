@@ -169,6 +169,7 @@ def get_image_type(path):
     imgtypes = {
         "# ISO 9660 CD-ROM filesystem": "iso9660",
         "x86 boot sector": "iso9660",
+        "DOS/MBR boot sector": "iso9660",
         "Squashfs filesystem": "squashfs"
     }
     if not os.path.isfile(path):
